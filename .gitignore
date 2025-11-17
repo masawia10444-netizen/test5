@@ -1,1 +1,7 @@
 /.env
+/node_modules
+/dist
+/build
+# Log files
+npm-debug.log*
+.log
