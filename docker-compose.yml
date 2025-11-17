@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # 1. ⚙️ บริการ Backend (Node.js/Express)
