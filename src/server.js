@@ -12,14 +12,14 @@ const PORT = process.env.PORT || 1040;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../public")));
 
-// ✅ Redirect root ไป /test5 อัตโนมัติ
+// ✅ Redirect root ไป / อัตโนมัติ
 app.get("/", (req, res) => {
-  res.redirect("/test5");
+  res.redirect("/");
 });
 
 // ✅ หน้า test5
-app.get("/test5", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/test5.html"));
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/.html"));
 });
 
 // ✅ หน้า home (ถ้ามี)
@@ -28,11 +28,11 @@ app.get("/home", (req, res) => {
 });
 
 // ✅ ใช้งาน API routes
-app.use("/test5/api", apiRoutes);
+app.use("/api", apiRoutes);
 
 // ✅ Start server + init DB
 app.listen(PORT, async () => {
   // เรียกใช้ initDB เพื่อเชื่อมต่อฐานข้อมูล
   await initDB(); 
-  console.log(`🚀 Server running at http://localhost:${PORT}/test5`);
+  console.log(`🚀 Server running at http://localhost:${PORT}/`);
 });
