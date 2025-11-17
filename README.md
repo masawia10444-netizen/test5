@@ -36,4 +36,4 @@ docker ps
 # ดู log ของ PostgreSQL
 docker logs czp-db	
 # เข้าฐานข้อมูลใน container
-docker exec -it czp-db psql -U postgres -d czp_db	
+docker exec -it czp-db psql -U postgres -d czp_db	# test5
