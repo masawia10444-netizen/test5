@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ### 1️⃣ ติดตั้ง dependencies
 ```bash
 npm install
@@ -37,3 +38,6 @@ docker ps
 docker logs czp-db	
 # เข้าฐานข้อมูลใน container
 docker exec -it czp-db psql -U postgres -d czp_db	# test5
+=======
+# test5
+>>>>>>> 008f31fbf6794d024536239bbdeb13b398f1e404
