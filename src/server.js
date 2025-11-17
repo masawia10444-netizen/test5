@@ -1,36 +1,45 @@
-// src/server.js (ปรับปรุง)
 const express = require("express");
 const path = require("path");
-// ... (ส่วน require อื่นๆ)
 
-// ... (ส่วน const app = express();)
+// ✅ นำเข้า Express Router สำหรับ API
+const apiRoutes = require("./route/api"); 
 
+// ✅ นำเข้าฟังก์ชันเชื่อมต่อฐานข้อมูล MongoDB
+const { initDB } = require("./utils/db"); 
+
+// ✅ นำเข้าและตั้งค่า dotenv เพื่อโหลดตัวแปรจากไฟล์ .env
+require("dotenv").config();
+
+const app = express();
+// ดึงค่า PORT จาก .env หรือใช้ค่า default 1040
+const PORT = process.env.PORT || 1040;
+
+// Middleware สำหรับการจัดการ JSON request body
 app.use(express.json());
 
-// ✅ เพิ่ม Middleware เพื่อเสิร์ฟไฟล์ Static บน Path /test5/
-// นี่คือวิธีที่ถูกต้องในการบอก Express ว่า: ถ้า Request มาที่ /test5/ ให้มองหาไฟล์ใน public/
-// Express จะตัด '/test5' ออกไป ทำให้ /test5/style.css ถูกมองเป็น /public/style.css
-app.use("/test5", express.static(path.join(__dirname, "../public"))); 
+// Middleware สำหรับเสิร์ฟไฟล์ Static (public/test5.html, style.css, ฯลฯ)
+// นี่คือ Fallback ในกรณีที่ Nginx ไม่ได้ทำหน้าที่เสิร์ฟไฟล์ Static
+app.use(express.static(path.join(__dirname, "../public")));
 
-// ❌ ลบหรือคอมเมนต์บรรทัดเก่าออก:
-// app.use(express.static(path.join(__dirname, "../public")));
+// --- การกำหนด Routes ---
 
-
-// ✅ Redirect root / ไปยัง /test5 อัตโนมัติ (ยังคงอยู่)
+// ✅ Redirect root / ไปยัง /test5 อัตโนมัติ
 app.get("/", (req, res) => {
     res.redirect("/test5");
 });
 
 // ✅ หน้า test5 (Frontend App)
-// ไม่ต้องใช้ .get อีกต่อไป เพราะ Middleware static ด้านบนจัดการ /test5/test5.html ให้แล้ว
-// หากต้องการให้แน่ใจว่าทำงานได้ ให้ใช้:
 app.get("/test5", (req, res) => {
     res.sendFile(path.join(__dirname, "../public/test5.html"));
 });
 
+// ✅ หน้า home (ถ้ามี index.html)
+app.get("/home", (req, res) => {
+    res.sendFile(path.join(__dirname, "../public/index.html"));
+});
 
 // ✅ ใช้งาน API routes
-// ใช้ Path เต็มตามที่ NPM ส่งมา
+// ต้องมั่นใจว่า Path นี้ตรงกับที่ Nginx Proxy Manager ชี้เข้ามา (http://Host:1040/test5/api)
 app.use("/test5/api", apiRoutes);
 
 // ✅ Start server และเริ่มต้นฐานข้อมูล
