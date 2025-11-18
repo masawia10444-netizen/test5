@@ -9,9 +9,36 @@
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Round" rel="stylesheet">
 
-    <link rel="stylesheet" href="/test5/style.css"> 
-
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* Global Styles (Dark Minimal Theme) */
+        body { font-family: 'Prompt', sans-serif; margin: 0; background-color: #1a1a2e; color: #e0e0e0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 20px; box-sizing: border-box; }
+        .container { max-width: 900px; width: 100%; background: #24243e; padding: 30px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4); display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        h1 { grid-column: 1 / -1; color: #00bcd4; text-align: center; margin-bottom: 40px; font-weight: 700; font-size: 2.2em; }
+        h2 { color: #00bcd4; font-weight: 600; font-size: 1.5em; margin-bottom: 20px; border-bottom: 1px solid rgba(0, 188, 212, 0.3); padding-bottom: 10px; }
+        .card { background-color: #2e2e4f; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; }
+        .data-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; padding-bottom: 5px; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); }
+        .data-row:last-child { border-bottom: none; }
+        .data-label { font-weight: 500; color: #a0a0a0; flex-shrink: 0; margin-right: 15px; }
+        .data-value { color: #e0e0e0; text-align: right; flex-grow: 1; word-break: break-all; }
+        .button-group { grid-column: 1 / -1; text-align: center; margin-top: 40px; }
+        button { background-color: #00bcd4; color: #fff; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 1.1em; font-weight: 600; transition: background-color 0.3s ease, transform 0.2s ease; }
+        button:hover { background-color: #00a0b2; transform: translateY(-2px); }
+        button:disabled { background-color: #555; cursor: not-allowed; transform: none; }
+        .status-section { grid-column: 1 / -1; margin-top: 30px; }
+        .log-box { background-color: #1a1a2e; padding: 18px; border-radius: 8px; margin-top: 15px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85em; max-height: 250px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; border: 1px solid rgba(0, 188, 212, 0.2); }
+        .log-box p { margin: 0; padding: 3px 0; color: #b0b0b0; }
+        .log-box p.error { color: #ff6b6b; }
+        .log-box p.success { color: #6bff6b; }
+        .log-box p.info { color: #a0a0a0; }
+        .message { margin-top: 15px; padding: 10px 15px; border-radius: 6px; font-weight: 600; text-align: center; }
+        .message.error { background-color: #4f2e2e; color: #ff6b6b; border: 1px solid #ff6b6b; }
+        .message.success { background-color: #2e4f2e; color: #6bff6b; border: 1px solid #6bff6b; }
+        .message.info { background-color: #2e2e4f; color: #00bcd4; border: 1px solid #00bcd4; }
+        .loading-spinner { border: 4px solid rgba(0, 188, 212, 0.3); width: 24px; height: 24px; border-radius: 50%; border-left-color: #00bcd4; animation: spin 1s ease infinite; display: inline-block; vertical-align: middle; margin-left: 10px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        @media (max-width: 768px) { .container { grid-template-columns: 1fr; gap: 20px; padding: 20px; } h1 { font-size: 1.8em; margin-bottom: 30px; } h2 { font-size: 1.3em; margin-bottom: 15px; } .button-group { margin-top: 30px; } button { font-size: 1em; padding: 10px 20px; } }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -53,7 +80,7 @@
         const refreshDataBtn = document.getElementById('refreshDataBtn');
         const loadingSpinner = document.getElementById('loadingSpinner');
 
-        // ฟังก์ชันจัดการ Log/Status (คงไว้ตามเดิม)
+        // ฟังก์ชันจัดการ Log/Status
         function appendLog(message, type = 'info') {
             const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const logEntry = document.createElement('p');
@@ -71,36 +98,37 @@
             loadingSpinner.style.display = 'inline-block';
             refreshDataBtn.disabled = true;
             setStatus('กำลังโหลดข้อมูล...', 'info');
-            logOutput.innerHTML = '';
+            logOutput.innerHTML = ''; // Clear log
             appendLog('เริ่มการเรียกข้อมูล DGA...', 'info');
 
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 
-                // ✅ ดึงค่าจาก URL Params หรือใช้ค่า Mock ที่กำหนดใน HTML
+                // 1. ดึงค่าจาก URL Params หรือใช้ค่า Mock ที่กำหนดใน HTML
                 const appId = urlParams.get('appId') || document.getElementById('appId').textContent;
                 const mToken = urlParams.get('mToken') || document.getElementById('mToken').textContent; 
-
-                // อัปเดต UI
+                
+                // Update UI (เพื่อแสดงค่า Mock/จริงที่ใช้)
                 document.getElementById('mToken').textContent = mToken;
                 document.getElementById('appId').textContent = appId;
                 
                 if (mToken.includes('MOCK') || appId.includes('MOCK')) {
-                     appendLog('⚠️ ใช้ค่า MOCK App ID หรือ MToken อาจทำให้ API ล้มเหลว', 'error');
+                     appendLog('⚠️ ใช้ค่า MOCK App ID หรือ MToken อาจทำให้ API ล้มเหลว', 'warn');
                 }
 
-                // 1. ✅ Validate เพื่อขอ Token (API: /test5/api/validate)
+                // 2. ✅ Validate เพื่อขอ Token (API: /test5/api/validate)
                 appendLog('กำลังเรียก /test5/api/validate...', 'info');
                 const validateRes = await axios.get("/test5/api/validate"); 
                 
                 const token = validateRes.data.token;
-                // ดึง Agent ID และ Consumer Key จาก Response ของ /validate (ถ้า Backend ส่งกลับมา)
+                
+                // ดึง Agent ID และ Consumer Key จาก Response ของ /validate
                 document.getElementById('agentId').textContent = validateRes.data.agentId || '-';
                 document.getElementById('consumerKey').textContent = validateRes.data.consumerKey || '-';
 
                 appendLog(`✅ ได้ Access Token: ${token.substring(0, 10)}...`, 'success');
 
-                // 2. ✅ Login, ดึงข้อมูลผู้ใช้, และบันทึก/อัปเดต (API: /test5/api/login)
+                // 3. ✅ Login, ดึงข้อมูลผู้ใช้, และบันทึก/อัปเดต (API: /test5/api/login)
                 appendLog('กำลังเรียก /test5/api/login...', 'info');
                 
                 // ส่ง appId, mToken, และ token ไปพร้อมกันใน body (ตาม API.js Logic)
@@ -113,13 +141,12 @@
                 const userData = loginRes.data.user;
                 appendLog('✅ ดึงข้อมูลผู้ใช้สำเร็จและบันทึกใน MongoDB', 'success');
 
-                // 3. ✅ แสดงผลข้อมูลผู้ใช้ (ต้องตรงกับ ID ใน HTML)
+                // 4. ✅ แสดงผลข้อมูลผู้ใช้
                 document.getElementById('citizenId').textContent = userData.citizenId || '-';
                 document.getElementById('firstName').textContent = userData.firstName || '-';
                 document.getElementById('lastName').textContent = userData.lastName || '-';
-                // ใช้ ID 'mobile' และ 'email' ที่ถูกต้องตาม HTML:
-                document.getElementById('mobile').textContent = userData.mobile || '-';
-                document.getElementById('email').textContent = userData.email || '-'; 
+                document.getElementById('mobile').textContent = userData.mobile || '-'; // ตรงกับ ID ใน HTML
+                document.getElementById('email').textContent = userData.email || '-'; // ตรงกับ ID ใน HTML
 
                 setStatus('✔️ โหลดข้อมูลสำเร็จแล้ว', 'success');
 
@@ -144,7 +171,11 @@
             }
         }
 
+        // Run fetchDGAData เมื่อมีการคลิกปุ่ม
         document.getElementById('refreshDataBtn').addEventListener('click', fetchDGAData);
+        
+        // รันอัตโนมัติเมื่อโหลดหน้า (ถ้าต้องการ)
+        window.addEventListener('load', fetchDGAData); 
     </script>
 </body>
 </html>
