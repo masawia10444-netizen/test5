@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 1040;
 // Middleware สำหรับการจัดการ JSON request body
 app.use(express.json());
 
-// Middleware สำหรับเสิร์ฟไฟล์ Static (public/test5.html, style.css, ฯลฯ)
+// Middleware สำหรับเสิร์ฟไฟล์ Static (public/Client_DGA.html, style.css, ฯลฯ)
 // นี่คือ Fallback ในกรณีที่ Nginx ไม่ได้ทำหน้าที่เสิร์ฟไฟล์ Static
 app.use(express.static(path.join(__dirname, "../public")));
 
@@ -30,7 +30,7 @@ app.get("/", (req, res) => {
 
 // ✅ หน้า test5 (Frontend App)
 app.get("/test5", (req, res) => {
-    res.sendFile(path.join(__dirname, "../public/test5.html"));
+    res.sendFile(path.join(__dirname, "../public/Client_DGA.html"));
 });
 
 // ✅ หน้า home (ถ้ามี index.html)
