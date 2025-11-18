@@ -95,7 +95,7 @@ router.post("/login", async (req, res) => {
             { appId: appId, mToken: mToken },
             { headers }
         );
-
+        console.log("💡 CZP API Response:", response.data);
         const result = response.data;
 
         if (result.messageCode !== 200)
