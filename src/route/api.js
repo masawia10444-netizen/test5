@@ -2,12 +2,14 @@ const express = require("express");
 const router = express.Router();
 const axios = require("axios");
 
-// ✅ นำเข้า Mongoose Model (ต้องแน่ใจว่า path ถูกต้อง: src/models/userModel.js)
+// ❌ ลบ const { pool } = require("../db"); (ถ้าคุณเปลี่ยนเป็น MongoDB แล้ว)
+
+// ✅ นำเข้า Mongoose Model (User)
 const UserModel = require("../models/userModel"); 
 
 require("dotenv").config();
 
-// กำหนดตัวแปร ENV ที่ชัดเจนสำหรับ DGA (อ้างอิงจาก .env ที่เคยให้มา)
+// กำหนดตัวแปร ENV ที่ชัดเจนสำหรับ DGA (ใช้ชื่อตัวแปรที่ดึงจาก .env อย่างถูกต้อง)
 const DGA_CONSUMER_KEY = process.env.DGA_CONSUMER_KEY_NOTI || process.env.CONSUMER_KEY;
 const DGA_AGENT_ID = process.env.DGA_AGENT_ID_AUTH || process.env.AGENT_ID;
 const DGA_CONSUMER_SECRET = process.env.DGA_CONSUMER_SECRET_AUTH || process.env.CONSUMER_SECRET;
@@ -23,13 +25,10 @@ const axiosInstance = axios.create({
     timeout: 10000,
 });
 
-// --- API Endpoints ---
-
 /**
- * ✅ NEW: Endpoint สำหรับดึงค่า ENV Config ที่ไม่เป็นความลับ (ใช้สำหรับ Debug หน้า Frontend)
+ * ✅ NEW: Endpoint สำหรับดึงค่า ENV Config (ใช้ Debug Frontend)
  */
 router.get("/env-config", (req, res) => {
-    // ส่งเฉพาะค่าที่ไม่ใช่ความลับกลับไปให้ Frontend
     res.json({
         AGENT_ID: DGA_AGENT_ID,
         CONSUMER_KEY: DGA_CONSUMER_KEY,
@@ -43,6 +42,7 @@ router.get("/validate", async (req, res) => {
     try {
         console.log("🚀 [START] /api/validate");
 
+        // ใช้ DGA_AUTH_URL และ Secrets จากตัวแปรที่กำหนดไว้
         const url = `${process.env.DGA_AUTH_URL}?ConsumerSecret=${DGA_CONSUMER_SECRET}&AgentID=${DGA_AGENT_ID}`; 
         
         const response = await axiosInstance.get(url, {
@@ -57,6 +57,9 @@ router.get("/validate", async (req, res) => {
         res.json({
             success: true,
             token: response.data.Result,
+            // ส่ง DGA_AGENT_ID และ DGA_CONSUMER_KEY กลับไปเผื่อ Frontend ต้องการแสดงผล
+            agentId: DGA_AGENT_ID, 
+            consumerKey: DGA_CONSUMER_KEY,
         });
     } catch (err) {
         console.error("💥 Validate Error:", err.response?.data || err.message);
@@ -100,10 +103,10 @@ router.post("/login", async (req, res) => {
 
         const user = result.result;
 
-        // 💾 Save to DB: Mongoose findOneAndUpdate (UPSERT)
+        // 💾 Save to DB: แปลงจาก SQL ON CONFLICT เป็น Mongoose findOneAndUpdate (UPSERT)
         try {
             const upsertedUser = await UserModel.findOneAndUpdate(
-                // 1. Query: ใช้ citizenId เป็นเงื่อนไขหลักในการค้นหา
+                // 1. Query: ค้นหาจาก citizenId (เทียบเท่า WHERE citizenId = ...)
                 { citizenId: user.citizenId },
                 // 2. Update/Set: ตั้งค่าฟิลด์ที่จะอัปเดตหรือสร้างใหม่
                 {
@@ -113,13 +116,14 @@ router.post("/login", async (req, res) => {
                     mobile: user.mobile,
                     email: user.email,
                 },
-                // 3. Options: upsert: true คือถ้าไม่เจอให้สร้างใหม่
+                // 3. Options: upsert: true คือถ้าไม่เจอให้สร้างใหม่ (ON CONFLICT)
                 { upsert: true, new: true, setDefaultsOnInsert: true } 
             );
 
-            console.log(`💾 User saved/updated successfully (ID: ${upsertedUser._id})`);
+            console.log(`💾 User saved/updated successfully (MongoDB ID: ${upsertedUser._id})`);
         } catch (dbErr) {
             console.error("⚠️ Database UPSERT error:", dbErr.message); 
+            // อาจจะส่ง status 500 กลับไปถ้าต้องการให้ DB Error หยุด flow
         }
 
         res.json({
