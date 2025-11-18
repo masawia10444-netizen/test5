@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DGA Connect Test 0.1</title>
+    <title>DGA Connect Test 0.2</title>
 
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -103,24 +103,27 @@
 
             try {
                 const urlParams = new URLSearchParams(window.location.search);
+                console.log("💡 URL Params:", Object.fromEntries(urlParams.entries()));
                 
                 // 1. ดึงค่าจาก URL Params หรือใช้ค่า Mock ที่กำหนดใน HTML
                 const appId = urlParams.get('appId') || document.getElementById('appId').textContent;
                 const mToken = urlParams.get('mToken') || document.getElementById('mToken').textContent; 
+
                 
                 // Update UI (เพื่อแสดงค่า Mock/จริงที่ใช้)
                 document.getElementById('mToken').textContent = mToken;
                 document.getElementById('appId').textContent = appId;
                 
-                if (mToken.includes('MOCK') || appId.includes('MOCK')) {
-                     appendLog('⚠️ ใช้ค่า MOCK App ID หรือ MToken อาจทำให้ API ล้มเหลว', 'warn');
-                }
+                // if (mToken.includes('MOCK') || appId.includes('MOCK')) {
+                //      appendLog('⚠️ ใช้ค่า MOCK App ID หรือ MToken อาจทำให้ API ล้มเหลว', 'warn');
+                // }
 
                 // 2. ✅ Validate เพื่อขอ Token (API: /test5/api/validate)
-                appendLog('กำลังเรียก /test5/api/validate...', 'info');
-                const validateRes = await axios.get("/test5/api/validate"); 
+                // appendLog('กำลังเรียก /test5/api/validate...', 'info');
+                // const validateRes = await axios.get("/test5/api/validate"); 
                 
                 const token = validateRes.data.token;
+                console.log("💡 DGA token:", token);
                 
                 // ดึง Agent ID และ Consumer Key จาก Response ของ /validate
                 document.getElementById('agentId').textContent = validateRes.data.agentId || '-';
@@ -137,7 +140,7 @@
                     mToken: mToken,
                     token: token 
                 });
-                
+                console.log("💡 DGA Login Response:", loginRes.data);
                 const userData = loginRes.data.user;
                 appendLog('✅ ดึงข้อมูลผู้ใช้สำเร็จและบันทึกใน MongoDB', 'success');
 
