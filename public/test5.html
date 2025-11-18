@@ -1,21 +1,172 @@
 <!DOCTYPE html>
 <html lang="th">
-
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ข้อมูลผู้ใช้ DGA Connect</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ข้อมูลผู้ใช้ DGA Connect Test</title>
 
-  <link rel="preconnect" href="https://fonts.gstatic.com">
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Round" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Round" rel="stylesheet">
 
-  <link rel="stylesheet" href="/style.css"> 
-  
-  </head>
+    <link rel="stylesheet" href="/test5/style.css"> 
+    
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* CSS เพิ่มเติมสำหรับการจัดหน้า */
+        body { font-family: 'Prompt', sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        h1, h2 { color: #007bff; text-align: center; margin-bottom: 20px; }
+        .card { border: 1px solid #eee; border-radius: 6px; padding: 20px; margin-bottom: 15px; background-color: #fcfcfc; }
+        .card label { font-weight: 600; display: block; margin-bottom: 5px; color: #555; }
+        .card span { display: block; margin-left: 10px; color: #777; }
+        .button-group { text-align: center; margin-top: 30px; }
+        button { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease; }
+        button:hover { background-color: #0056b3; }
+        .log-box { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin-top: 20px; font-family: monospace; font-size: 0.9em; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; }
+        .error-message { color: #dc3545; font-weight: 600; margin-top: 10px; }
+        .success-message { color: #28a745; font-weight: 600; margin-top: 10px; }
+        .loading-spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border-left-color: #09f;
+            animation: spin 1s ease infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>ทดสอบข้อมูลผู้ใช้ DGA Connect</h1>
 
-  <body>
-    <H1>TEST Client</H1>
-  </body>
+        <div class="card">
+            <h2>ข้อมูลส่วนตัว</h2>
+            <p><label>รหัสประชาชน:</label><span id="citizenId">-</span></p>
+            <p><label>ชื่อ:</label><span id="name">-</span></p>
+            <p><label>นามสกุล:</label><span id="surname">-</span></p>
+            <p><label>เบอร์มือถือ:</label><span id="mobileNo">-</span></p>
+            <p><label>อีเมล:</label><span id="email">-</span></p>
+        </div>
 
+        <div class="card">
+            <h2>ข้อมูลระบบ</h2>
+            <p><label>App ID:</label><span id="appId">-</span></p>
+            <p><label>mToken:</label><span id="mToken">-</span></p>
+            <p><label>Agent ID:</label><span id="agentId">-</span></p>
+            <p><label>Consumer Key:</label><span id="consumerKey">-</span></p>
+        </div>
+
+        <div class="button-group">
+            <button id="refreshDataBtn">
+                🔄 รีเฟรชข้อมูล <span id="loadingSpinner" class="loading-spinner" style="display: none;"></span>
+            </button>
+        </div>
+
+        <div id="statusMessage" class="error-message"></div>
+        <div class="log-box">
+            <p>Log:</p>
+            <div id="logOutput"></div>
+        </div>
+    </div>
+
+    <script>
+        const logOutput = document.getElementById('logOutput');
+        const statusMessage = document.getElementById('statusMessage');
+        const refreshDataBtn = document.getElementById('refreshDataBtn');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        function appendLog(message, type = 'info') {
+            const time = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('p');
+            logEntry.innerHTML = `[${time}] ${message}`;
+            if (type === 'error') logEntry.style.color = '#dc3545';
+            else if (type === 'success') logEntry.style.color = '#28a745';
+            logOutput.prepend(logEntry); // เพิ่มไว้ด้านบนสุด
+        }
+
+        function setStatus(message, type = 'error') {
+            statusMessage.textContent = message;
+            statusMessage.className = `error-message ${type}-message`;
+        }
+
+        async function fetchDGAData() {
+            loadingSpinner.style.display = 'inline-block';
+            refreshDataBtn.disabled = true;
+            statusMessage.textContent = '';
+            appendLog('เริ่มการเรียกข้อมูล DGA...', 'info');
+
+            try {
+                // ดึง mToken จาก URL หรือใช้ค่า Mock สำหรับการทดสอบ
+                const urlParams = new URLSearchParams(window.location.search);
+                const mToken = urlParams.get('mToken') || "MOCK_DGA_MTOKEN_FOR_TESTING_12345"; 
+                document.getElementById('mToken').textContent = mToken;
+
+                // 1. เรียก /test5/api/validate
+                appendLog('กำลังเรียก /test5/api/validate...');
+                const validateRes = await axios.get("/test5/api/validate", {
+                    params: { mToken: mToken }
+                });
+                const { accessToken, agentId, consumerKey } = validateRes.data;
+                appendLog(`ได้รับ Access Token: ${accessToken ? '✅' : '❌'}`, 'success');
+                appendLog(`Agent ID: ${agentId}`, 'success');
+                appendLog(`Consumer Key: ${consumerKey}`, 'success');
+
+                document.getElementById('appId').textContent = "จาก Validate API"; // หรือค่าจริงถ้ามี
+                document.getElementById('agentId').textContent = agentId;
+                document.getElementById('consumerKey').textContent = consumerKey;
+
+                // 2. เรียก /test5/api/login
+                appendLog('กำลังเรียก /test5/api/login...');
+                const loginRes = await axios.post("/test5/api/login", { accessToken: accessToken });
+                const userData = loginRes.data;
+                appendLog(`ได้รับข้อมูลผู้ใช้: ${userData.citizenId ? '✅' : '❌'}`, 'success');
+                appendLog(`บันทึกข้อมูลผู้ใช้ลง DB (MongoDB) สำเร็จ`, 'success');
+
+                document.getElementById('citizenId').textContent = userData.citizenId || '-';
+                document.getElementById('name').textContent = userData.firstName || '-';
+                document.getElementById('surname').textContent = userData.lastName || '-';
+                document.getElementById('mobileNo').textContent = userData.mobileNo || '-';
+                document.getElementById('email').textContent = userData.email || '-';
+
+                setStatus('✔️ โหลดข้อมูลสำเร็จแล้ว', 'success');
+
+            } catch (error) {
+                console.error("Error fetching DGA data:", error);
+                let errorMessage = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+                if (error.response) {
+                    errorMessage += `: ${error.response.status} - ${error.response.data.message || error.response.statusText}`;
+                    appendLog(`API Error: ${error.response.status} - ${error.response.data.message || error.response.statusText}`, 'error');
+                } else if (error.request) {
+                    errorMessage += `: ไม่มีการตอบสนองจากเซิร์ฟเวอร์ (Network Error)`;
+                    appendLog('Network Error: ไม่มีการตอบสนองจากเซิร์ฟเวอร์', 'error');
+                } else {
+                    errorMessage += `: ${error.message}`;
+                    appendLog(`General Error: ${error.message}`, 'error');
+                }
+                setStatus(`❌ ${errorMessage}`, 'error');
+            } finally {
+                loadingSpinner.style.display = 'none';
+                refreshDataBtn.disabled = false;
+            }
+        }
+
+        // Initial load
+        window.addEventListener('load', fetchDGAData);
+        refreshDataBtn.addEventListener('click', fetchDGAData);
+
+        // ดักจับและแสดง error จากคอนโซลเบราว์เซอร์
+        window.onerror = function(message, source, lineno, colno, error) {
+            appendLog(`Browser JS Error: ${message} at ${source}:${lineno}`, 'error');
+            return false; // ป้องกันการแสดงผล default browser error
+        };
+    </script>
+</body>
 </html>
