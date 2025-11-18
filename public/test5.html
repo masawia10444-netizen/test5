@@ -3,35 +3,160 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ข้อมูลผู้ใช้ DGA Connect Test</title>
+    <title>DGA Connect Test - Dark Minimal</title>
 
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Round" rel="stylesheet">
 
-    <link rel="stylesheet" href="/test5/style.css"> 
-    
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <style>
-        /* CSS เพิ่มเติมสำหรับการจัดหน้า */
-        body { font-family: 'Prompt', sans-serif; margin: 20px; background-color: #f4f7f6; color: #333; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        h1, h2 { color: #007bff; text-align: center; margin-bottom: 20px; }
-        .card { border: 1px solid #eee; border-radius: 6px; padding: 20px; margin-bottom: 15px; background-color: #fcfcfc; }
-        .card label { font-weight: 600; display: block; margin-bottom: 5px; color: #555; }
-        .card span { display: block; margin-left: 10px; color: #777; }
-        .button-group { text-align: center; margin-top: 30px; }
-        button { background-color: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 16px; transition: background-color 0.3s ease; }
-        button:hover { background-color: #0056b3; }
-        .log-box { background-color: #e9ecef; padding: 15px; border-radius: 5px; margin-top: 20px; font-family: monospace; font-size: 0.9em; max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; }
-        .error-message { color: #dc3545; font-weight: 600; margin-top: 10px; }
-        .success-message { color: #28a745; font-weight: 600; margin-top: 10px; }
+        /* Global Styles */
+        body {
+            font-family: 'Prompt', sans-serif;
+            margin: 0;
+            background-color: #1a1a2e; /* Dark background */
+            color: #e0e0e0; /* Light text */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start; /* Align to top */
+            min-height: 100vh;
+            padding: 40px 20px; /* Add some padding */
+            box-sizing: border-box;
+        }
+
+        .container {
+            max-width: 900px; /* Wider container */
+            width: 100%;
+            background: #24243e; /* Slightly lighter dark background for container */
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4); /* Deeper shadow */
+            display: grid; /* Use Grid for layout */
+            grid-template-columns: 1fr 1fr; /* Two columns */
+            gap: 30px; /* Space between grid items */
+        }
+
+        h1 {
+            grid-column: 1 / -1; /* Span across both columns */
+            color: #00bcd4; /* Accent color */
+            text-align: center;
+            margin-bottom: 40px;
+            font-weight: 700;
+            font-size: 2.2em;
+        }
+
+        h2 {
+            color: #00bcd4;
+            font-weight: 600;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(0, 188, 212, 0.3); /* Underline with accent */
+            padding-bottom: 10px;
+        }
+
+        .card {
+            background-color: #2e2e4f; /* Darker card background */
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+            display: flex; /* Flex for content */
+            flex-direction: column;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 12px;
+            padding-bottom: 5px;
+            border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+        }
+        .data-row:last-child {
+            border-bottom: none;
+        }
+
+        .data-label {
+            font-weight: 500;
+            color: #a0a0a0; /* Muted label color */
+            flex-shrink: 0; /* Prevent label from shrinking */
+            margin-right: 15px;
+        }
+
+        .data-value {
+            color: #e0e0e0;
+            text-align: right;
+            flex-grow: 1; /* Allow value to grow */
+            word-break: break-all; /* Break long words */
+        }
+
+        .button-group {
+            grid-column: 1 / -1;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        button {
+            background-color: #00bcd4; /* Accent color for button */
+            color: #fff;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: 600;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        button:hover {
+            background-color: #00a0b2;
+            transform: translateY(-2px);
+        }
+        button:disabled {
+            background-color: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .status-section {
+            grid-column: 1 / -1;
+            margin-top: 30px;
+        }
+
+        .log-box {
+            background-color: #1a1a2e; /* Even darker for log box */
+            padding: 18px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-family: 'Consolas', 'Monaco', monospace;
+            font-size: 0.85em;
+            max-height: 250px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: 1px solid rgba(0, 188, 212, 0.2); /* Subtle accent border */
+        }
+        .log-box p { margin: 0; padding: 3px 0; color: #b0b0b0; }
+        .log-box p.error { color: #ff6b6b; }
+        .log-box p.success { color: #6bff6b; }
+        .log-box p.info { color: #a0a0a0; }
+
+        .message {
+            margin-top: 15px;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+        }
+        .message.error { background-color: #4f2e2e; color: #ff6b6b; border: 1px solid #ff6b6b; }
+        .message.success { background-color: #2e4f2e; color: #6bff6b; border: 1px solid #6bff6b; }
+        .message.info { background-color: #2e2e4f; color: #00bcd4; border: 1px solid #00bcd4; }
+
         .loading-spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            width: 36px;
-            height: 36px;
+            border: 4px solid rgba(0, 188, 212, 0.3);
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            border-left-color: #09f;
+            border-left-color: #00bcd4;
             animation: spin 1s ease infinite;
             display: inline-block;
             vertical-align: middle;
@@ -41,6 +166,19 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr; /* Single column on small screens */
+                gap: 20px;
+                padding: 20px;
+            }
+            h1 { font-size: 1.8em; margin-bottom: 30px; }
+            h2 { font-size: 1.3em; margin-bottom: 15px; }
+            .button-group { margin-top: 30px; }
+            button { font-size: 1em; padding: 10px 20px; }
+        }
     </style>
 </head>
 <body>
@@ -49,19 +187,19 @@
 
         <div class="card">
             <h2>ข้อมูลส่วนตัว</h2>
-            <p><label>รหัสประชาชน:</label><span id="citizenId">-</span></p>
-            <p><label>ชื่อ:</label><span id="name">-</span></p>
-            <p><label>นามสกุล:</label><span id="surname">-</span></p>
-            <p><label>เบอร์มือถือ:</label><span id="mobileNo">-</span></p>
-            <p><label>อีเมล:</label><span id="email">-</span></p>
+            <div class="data-row"><span class="data-label">รหัสประชาชน:</span><span id="citizenId" class="data-value">-</span></div>
+            <div class="data-row"><span class="data-label">ชื่อ:</span><span id="firstName" class="data-value">-</span></div>
+            <div class="data-row"><span class="data-label">นามสกุล:</span><span id="lastName" class="data-value">-</span></div>
+            <div class="data-row"><span class="data-label">เบอร์มือถือ:</span><span id="mobileNo" class="data-value">-</span></div>
+            <div class="data-row"><span class="data-label">อีเมล:</span><span id="email" class="data-value">-</span></div>
         </div>
 
         <div class="card">
             <h2>ข้อมูลระบบ</h2>
-            <p><label>App ID:</label><span id="appId">-</span></p>
-            <p><label>mToken:</label><span id="mToken">-</span></p>
-            <p><label>Agent ID:</label><span id="agentId">-</span></p>
-            <p><label>Consumer Key:</label><span id="consumerKey">-</span></p>
+            <div class="data-row"><span class="data-label">App ID:</span><span id="appId" class="data-value">-</span></div>
+            <div class="data-row"><span class="data-label">mToken:</span><span id="mToken" class="data-value">MOCK_DGA_MTOKEN_FOR_TESTING_12345</span></div>
+            <div class="data-row"><span class="data-label">Agent ID:</span><span id="agentId" class="data-value">-</span></div>
+            <div class="data-row"><span class="data-label">Consumer Key:</span><span id="consumerKey" class="data-value">-</span></div>
         </div>
 
         <div class="button-group">
@@ -70,10 +208,10 @@
             </button>
         </div>
 
-        <div id="statusMessage" class="error-message"></div>
-        <div class="log-box">
-            <p>Log:</p>
-            <div id="logOutput"></div>
+        <div class="status-section">
+            <div id="statusMessage" class="message info"></div>
+            <h2>Log</h2>
+            <div id="logOutput" class="log-box"></div>
         </div>
     </div>
 
@@ -84,55 +222,50 @@
         const loadingSpinner = document.getElementById('loadingSpinner');
 
         function appendLog(message, type = 'info') {
-            const time = new Date().toLocaleTimeString();
+            const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const logEntry = document.createElement('p');
+            logEntry.className = type;
             logEntry.innerHTML = `[${time}] ${message}`;
-            if (type === 'error') logEntry.style.color = '#dc3545';
-            else if (type === 'success') logEntry.style.color = '#28a745';
-            logOutput.prepend(logEntry); // เพิ่มไว้ด้านบนสุด
+            logOutput.prepend(logEntry);
         }
 
-        function setStatus(message, type = 'error') {
+        function setStatus(message, type = 'info') {
             statusMessage.textContent = message;
-            statusMessage.className = `error-message ${type}-message`;
+            statusMessage.className = `message ${type}`;
         }
 
         async function fetchDGAData() {
             loadingSpinner.style.display = 'inline-block';
             refreshDataBtn.disabled = true;
-            statusMessage.textContent = '';
+            setStatus('กำลังโหลดข้อมูล...', 'info');
             appendLog('เริ่มการเรียกข้อมูล DGA...', 'info');
 
             try {
-                // ดึง mToken จาก URL หรือใช้ค่า Mock สำหรับการทดสอบ
                 const urlParams = new URLSearchParams(window.location.search);
-                const mToken = urlParams.get('mToken') || "MOCK_DGA_MTOKEN_FOR_TESTING_12345"; 
-                document.getElementById('mToken').textContent = mToken;
+                const mToken = urlParams.get('mToken') || document.getElementById('mToken').textContent; 
+                document.getElementById('mToken').textContent = mToken; // อัปเดต UI ด้วย mToken ที่ใช้
 
                 // 1. เรียก /test5/api/validate
-                appendLog('กำลังเรียก /test5/api/validate...');
+                appendLog('กำลังเรียก /test5/api/validate...', 'info');
                 const validateRes = await axios.get("/test5/api/validate", {
                     params: { mToken: mToken }
                 });
                 const { accessToken, agentId, consumerKey } = validateRes.data;
-                appendLog(`ได้รับ Access Token: ${accessToken ? '✅' : '❌'}`, 'success');
-                appendLog(`Agent ID: ${agentId}`, 'success');
-                appendLog(`Consumer Key: ${consumerKey}`, 'success');
-
-                document.getElementById('appId').textContent = "จาก Validate API"; // หรือค่าจริงถ้ามี
-                document.getElementById('agentId').textContent = agentId;
-                document.getElementById('consumerKey').textContent = consumerKey;
+                appendLog(`ได้รับ Access Token (สำเร็จ)`, 'success');
+                document.getElementById('appId').textContent = "จาก Validate API"; // สมมติว่า App ID มาจาก DGA Validate
+                document.getElementById('agentId').textContent = agentId || '-';
+                document.getElementById('consumerKey').textContent = consumerKey || '-';
 
                 // 2. เรียก /test5/api/login
-                appendLog('กำลังเรียก /test5/api/login...');
+                appendLog('กำลังเรียก /test5/api/login...', 'info');
                 const loginRes = await axios.post("/test5/api/login", { accessToken: accessToken });
                 const userData = loginRes.data;
-                appendLog(`ได้รับข้อมูลผู้ใช้: ${userData.citizenId ? '✅' : '❌'}`, 'success');
+                appendLog(`ได้รับข้อมูลผู้ใช้ (สำเร็จ)`, 'success');
                 appendLog(`บันทึกข้อมูลผู้ใช้ลง DB (MongoDB) สำเร็จ`, 'success');
 
                 document.getElementById('citizenId').textContent = userData.citizenId || '-';
-                document.getElementById('name').textContent = userData.firstName || '-';
-                document.getElementById('surname').textContent = userData.lastName || '-';
+                document.getElementById('firstName').textContent = userData.firstName || '-';
+                document.getElementById('lastName').textContent = userData.lastName || '-';
                 document.getElementById('mobileNo').textContent = userData.mobileNo || '-';
                 document.getElementById('email').textContent = userData.email || '-';
 
@@ -158,14 +291,14 @@
             }
         }
 
-        // Initial load
-        window.addEventListener('load', fetchDGAData);
+        window.addEventListener('load', () => {
+            fetchDGAData();
+        });
         refreshDataBtn.addEventListener('click', fetchDGAData);
 
-        // ดักจับและแสดง error จากคอนโซลเบราว์เซอร์
         window.onerror = function(message, source, lineno, colno, error) {
             appendLog(`Browser JS Error: ${message} at ${source}:${lineno}`, 'error');
-            return false; // ป้องกันการแสดงผล default browser error
+            return false;
         };
     </script>
 </body>
