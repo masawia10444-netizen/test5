@@ -4,7 +4,7 @@ const axios = require("axios");
 
 // ❌ ลบ const { pool } = require("../db"); (ถ้าคุณเปลี่ยนเป็น MongoDB แล้ว)
 // ✅ นำเข้า Mongoose Model (User)
-const UserModel = require("../models/userModel"); 
+const UserModel = require("../models/userModel");
 
 require("dotenv").config();
 
@@ -33,127 +33,142 @@ router.get("/env-config", (req, res) => {
         CONSUMER_KEY: DGA_CONSUMER_KEY,
     });
 });
-
 /**
- * ✅ STEP 1: Validate และขอ Token จาก eGov (เมธอด GET ตาม DGA)
- */
-/**
- * ✅ STEP 1: Validate และขอ Token จาก eGov (เมธอด GET ตาม DGA)
- */
-router.get("/validate", async (req, res) => { 
-    try {
-        // ... (โค้ดสร้าง URL และส่ง Request ไป DGA)
-
-        const response = await axiosInstance.get(url, {
-            headers: {
-                "Consumer-Key": DGA_CONSUMER_KEY, 
-                "Content-Type": "application/json", 
-            },
-        });
-        
-        // 1. ตรวจสอบสถานะ: ถ้าไม่ใช่ 200 ให้ส่ง Error ทันที
-        if (response.status !== 200 || !response.data.Result) {
-            // หาก DGA คืน 403, Axios จะ throw error ก่อนถึงบรรทัดนี้
-            throw new Error(`Invalid Token Response or status ${response.status}`);
-        }
-        
-        const token = response.data.Result; 
-
-        res.json({
-            success: true,
-            token: token,
-            agentId: DGA_AGENT_ID, 
-            consumerKey: DGA_CONSUMER_KEY,
-        });
-    } catch (err) {
-        console.error("💥 Validate Error:", err.response?.data || err.message);
-        
-        // 2. 💡 แก้ไข: ดึง HTTP Status Code จาก Axios Error และส่งกลับไปให้ Frontend
-        const status = err.response?.status || 500;
-        
-        // ถ้าเป็น 403 ให้ระบุชัดเจนว่าเป็น Forbidden
-        const message = status === 403 ? "Forbidden: IP Whitelist หรือ Secrets ผิดพลาด" : "การ Validate token ล้มเหลว";
-
-        res.status(status).json({
-            success: false,
-            message: message,
-            error: err.response?.data || err.message,
-        });
-    }
-});
-
-/**
- * ✅ STEP 2: Login, ดึงข้อมูลผู้ใช้, และบันทึก/อัปเดต (UPSERT) ลง MongoDB
+ * ✅ NEW STEP: Login (Validate + Deproc + Save DB)
  */
 router.post("/login", async (req, res) => {
+    // 💡 ดึงค่าที่จำเป็นจาก Body (ตามที่ Frontend ส่งมา)
+    const { appId, mToken } = req.body;
+
+    // ใช้ค่า ENV ที่เรากำหนดไว้
+    const consumerKey = DGA_CONSUMER_KEY;
+    const consumerSecret = DGA_CONSUMER_SECRET;
+    const agentId = DGA_AGENT_ID;
+
     try {
-        console.log("🚀 [START] /api/login");
-        // รับค่า AppId, MToken และ Token จาก Frontend
-        const { appId, mToken, token } = req.body; 
+        console.log("🚀 [START] /api/login (Integrated DGA Flow)");
 
-        if (!appId || !mToken || !token) {
-            return res.status(400).json({ success: false, message: "Missing AppId, MToken, or Token" });
-        }
+        // ----------------------------------------------------
+        // Step 1: Validate -> Get Access Token
+        // ----------------------------------------------------
 
-        const apiUrl = process.env.DGA_API_URL; 
+        // 💡 ใช้ encodeURIComponent สำหรับ Secrets ตามตัวอย่าง
+        const validateUrl = `${process.env.DGA_AUTH_URL}?ConsumerSecret=${encodeURIComponent(
+            consumerSecret
+        )}&AgentID=${encodeURIComponent(agentId)}`;
 
-        // Headers: Consumer-Key, Content-Type, Token
-        const headers = {
-            "Consumer-Key": DGA_CONSUMER_KEY,
-            "Content-Type": "application/json",
-            "Token": token,
-        };
-        
-        // Request Body: AppId, MToken
-        const requestBody = {
-            "AppId": appId,
-            "MToken": mToken,
-        };
+        console.log(`🔗 Calling Validate API: ${process.env.DGA_AUTH_URL}`);
 
-        const response = await axiosInstance.post(
-            apiUrl,
-            requestBody, 
-            { headers } 
-        );
-
-        const result = response.data;
-
-        if (result.messageCode !== 200) {
-            throw new Error(result.message || "CZP API Error");
-        }
-
-        const user = result.result; 
-
-        // 💾 Save to DB: Mongoose findOneAndUpdate (UPSERT)
-        try {
-            await UserModel.findOneAndUpdate(
-                { citizenId: user.citizenId },
-                {
-                    userId: user.userId, 
-                    firstname: user.firstName, 
-                    lastname: user.lastName, 
-                    mobile: user.mobile, 
-                    email: user.email,
-                },
-                { upsert: true, new: true, setDefaultsOnInsert: true } 
-            );
-            console.log(`💾 User saved/updated successfully.`);
-        } catch (dbErr) {
-            console.error("⚠️ Database UPSERT error:", dbErr.message); 
-        }
-
-        // 5. Response
-        res.json({
-            success: true,
-            message: "ดึงข้อมูลจาก CZP สำเร็จ",
-            user: user, // ส่ง Object user กลับไปให้ Frontend
+        const validateResp = await fetch(validateUrl, {
+            method: 'GET',
+            headers: { 'Consumer-Key': consumerKey, 'Content-Type': 'application/json' }
         });
+
+        const validateJson = await validateResp.json().catch(() => null);
+
+        if (!validateResp.ok) {
+            // ถ้า Validate ล้มเหลว (เช่น 403 Forbidden) ให้ส่ง Error กลับไป
+            return res.status(validateResp.status || 500).json({
+                step: 'validate',
+                ok: false,
+                message: `Validation failed with status ${validateResp.status}`,
+                body: validateJson
+            });
+        }
+
+        const token = validateJson?.Result || validateJson?.result || validateJson?.Token;
+
+        if (!token) {
+            return res.status(500).json({ step: 'validate', ok: false, message: 'Access Token not found in DGA response' });
+        }
+        console.log(`✅ Access Token obtained: ${token.substring(0, 10)}...`);
+
+
+        // ----------------------------------------------------
+        // Step 2: Deproc (Citizen Data Retrieval)
+        // ----------------------------------------------------
+        const deprocUrl = process.env.DGA_API_URL;
+
+        if (!appId || !mToken) {
+            return res.status(400).json({ step: 'deproc', ok: false, message: 'Missing appId or mToken in request body' });
+        }
+
+        const deprocResp = await fetch(deprocUrl, {
+            method: 'POST',
+            headers: {
+                'Consumer-Key': consumerKey,
+                'Content-Type': 'application/json',
+                'Token': token // ใช้ Access Token ที่ได้
+            },
+            body: JSON.stringify({ appId, mToken })
+        });
+
+        const deprocJson = await deprocResp.json().catch(() => null);
+
+        if (!deprocResp.ok || deprocJson?.messageCode !== 200) {
+            return res.status(deprocResp.status || 500).json({
+                step: 'deproc',
+                ok: false,
+                message: 'Deproc API failed or returned non-200 messageCode.',
+                body: deprocJson
+            });
+        }
+
+        // ----------------------------------------------------
+        // Step 3: Data Extraction and MongoDB UPSERT
+        // ----------------------------------------------------
+        let citizen = deprocJson?.result || deprocJson?.data || deprocJson;
+
+        // ตรวจสอบว่ามี field สำคัญครบถ้วนหรือไม่ (ตาม Logic ของคุณ)
+        const requiredFields = ['userId', 'citizenId', 'firstName', 'lastName'];
+        const hasExpected = citizen && requiredFields.every(f => f in citizen);
+
+        if (!hasExpected) {
+            return res.status(500).json({
+                step: 'deproc',
+                message: 'Unexpected data structure or missing required fields',
+                deprocJson
+            });
+        }
+
+        // Map data ไปยัง Mongoose Document
+        const doc = {
+            userId: citizen.userId,
+            citizenId: citizen.citizenId,
+            firstname: citizen.firstName,
+            lastname: citizen.lastName,
+            mobile: citizen.mobile || null,
+            email: citizen.email || null,
+        };
+
+        try {
+            // 💡 MongoDB UPSERT Logic
+            const upsertedUser = await UserModel.findOneAndUpdate(
+                { citizenId: doc.citizenId },
+                { $set: doc },
+                { upsert: true, new: true, setDefaultsOnInsert: true }
+            );
+            console.log(`💾 User saved/updated successfully (ID: ${upsertedUser._id})`);
+        } catch (dbErr) {
+            console.error("⚠️ Database UPSERT error:", dbErr.message);
+            // เราจะไม่ส่ง 500 กลับไปถ้า DB error ไม่ได้สำคัญถึงขั้นต้องหยุด flow หลัก
+        }
+
+
+        // 4. Response Final
+        res.status(200).json({
+            success: true,
+            message: "ดึงข้อมูลผู้ใช้สำเร็จและบันทึก DB แล้ว",
+            user: doc // ส่งข้อมูลที่สะอาดกลับไป
+        });
+
     } catch (err) {
-        console.error("💥 Login Error:", err.response?.data || err.message);
+        console.error("💥 Fatal API Error:", err);
         res.status(500).json({
-            success: false,
-            message: "เกิดข้อผิดพลาดในการเชื่อมต่อกับ CZP",
-            error: err.response?.data || err.message,
+            step: 'general',
+            ok: false,
+            message: 'An unexpected error occurred.',
+            error: err.message
         });
     }
 });
@@ -174,7 +189,7 @@ router.post("/notification", async (req, res) => {
             });
         }
 
-        const Urlnoti = process.env.DGA_NOTI_API_URL; 
+        const Urlnoti = process.env.DGA_NOTI_API_URL;
 
         const headers = {
             "Consumer-Key": DGA_CONSUMER_KEY,
@@ -186,7 +201,7 @@ router.post("/notification", async (req, res) => {
             appId: appId,
             data: [
                 {
-                    message: message || "ทดสอบข้อความ", 
+                    message: message || "ทดสอบข้อความ",
                     userId: userId,
                 },
             ],
