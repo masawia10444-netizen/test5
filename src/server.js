@@ -19,7 +19,7 @@ app.use(express.json());
 
 // --- การกำหนด Routes ---
 
-// 1. ✅ Static Files (สำหรับ CSS, JS, Fonts, Images)
+// 1. ✅ Static Files (สำหรับ CSS, JS, Fonts, Images, และ HTML)
 // Express จะมองหาไฟล์ใน /public/ เมื่อ Path เริ่มต้นด้วย /test5
 app.use("/test5", express.static(path.join(__dirname, "../public"))); 
 
@@ -31,14 +31,9 @@ app.get("/", (req, res) => {
 // 3. ✅ Frontend Main Page: /test5
 app.get("/test5", (req, res) => {
     // 💡 การแก้ไข: ใช้ path.resolve เพื่อสร้าง Absolute Path ที่แน่นอน
-    // path.resolve(__dirname, '..', 'public', 'test5.html') จะชี้ไปที่ /app/public/test5.html
-    res.sendFile(path.resolve(__dirname, '..', 'public', 'test5.html')); 
+    // NOTE: เนื่องจากไฟล์จริงชื่อ Client_DGA.html เราจึงต้องเปลี่ยนชื่อไฟล์ตรงนี้ด้วย
+    res.sendFile(path.resolve(__dirname, '..', 'public', 'Client_DGA.html')); 
 });
-
-// ✅ Route อื่น ๆ ที่เหลือ
-// app.get("/home", (req, res) => {
-//     res.sendFile(path.join(__dirname, "../public/index.html"));
-// });
 
 // 4. ✅ API Routes
 // Endpoint ต้องเป็น /test5/api เพื่อรับ Request ที่มาจาก NPM
