@@ -6,7 +6,7 @@ const axios = require("axios");
 // const { pool } = require("../db"); 
 
 // ✅ นำเข้า Mongoose Model (User)
-const UserModel = require("./models/userModel"); 
+const UserModel = require("../models/userModel"); 
 
 require("dotenv").config();
 
