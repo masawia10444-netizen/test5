@@ -2,7 +2,7 @@ const express = require("express");
 const path = require("path");
 
 // ✅ นำเข้า Express Router สำหรับ API
-const apiRoutes = require("./route/api"); 
+const apiRoutes = require("./api"); 
 
 // ✅ นำเข้าฟังก์ชันเชื่อมต่อฐานข้อมูล MongoDB
 const { initDB } = require("./utils/db"); 
