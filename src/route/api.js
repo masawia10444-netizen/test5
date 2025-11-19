@@ -2,12 +2,15 @@ const express = require("express");
 const router = express.Router();
 const axios = require("axios");
 
+// ❌ ลบการนำเข้า PostgreSQL pool และแทนที่ด้วย Mongoose Model
+// const { pool } = require("../db"); 
+
 // ✅ นำเข้า Mongoose Model (User)
 const UserModel = require("../models/userModel"); 
 
 require("dotenv").config();
 
-// กำหนดตัวแปร ENV ที่ชัดเจนสำหรับ DGA
+// กำหนดตัวแปร ENV ที่ชัดเจนสำหรับ DGA (ใช้ชื่อตัวแปรที่กำหนดไว้)
 const DGA_CONSUMER_KEY = process.env.DGA_CONSUMER_KEY_NOTI || process.env.CONSUMER_KEY;
 const DGA_AGENT_ID = process.env.DGA_AGENT_ID_AUTH || process.env.AGENT_ID;
 const DGA_CONSUMER_SECRET = process.env.DGA_CONSUMER_SECRET_AUTH || process.env.CONSUMER_SECRET;
@@ -33,48 +36,35 @@ router.get("/env-config", (req, res) => {
     });
 });
 
-/** 
- * ✅ STEP 1: Validate และขอ Token จาก eGov (เมธอด GET ตาม DGA)
+/**
+ * ✅ STEP 1: Validate และขอ Token จาก eGov
  */
 router.get("/validate", async (req, res) => { 
     try {
-        console.log("🚀 [START] /api/validate (GET)");
+        console.log("🚀 [START] /api/validate");
 
-        // 💡 1. ดึงค่าจาก Query Parameters ที่ Frontend อาจส่งมา (เช่น appId, mToken)
-        const frontendAppId = req.query.appId;
-        const frontendMToken = req.query.mToken;
-
-        // 2. กำหนดค่า Secrets ที่ใช้ในการเรียก DGA (ใช้ค่าจาก .env เสมอเพื่อความปลอดภัย)
-        const finalSecret = DGA_CONSUMER_SECRET; // Secret Key
-        const finalAgentId = DGA_AGENT_ID;       // Agent ID
-
-        // 3. สร้าง Request URL สำหรับ DGA Validate
-        // NOTE: เราใช้ finalSecret และ finalAgentId ที่มาจาก ENV เสมอ
-        const url = `${process.env.DGA_AUTH_URL}?ConsumerSecret=${finalSecret}&AgentID=${finalAgentId}`; 
+        // ใช้ DGA_AUTH_URL และ Secrets จากตัวแปรที่กำหนดไว้
+        const url = `${process.env.DGA_AUTH_URL}?ConsumerSecret=${DGA_CONSUMER_SECRET}&AgentID=${DGA_AGENT_ID}`; 
         
         const response = await axiosInstance.get(url, {
             headers: {
-                "Consumer-Key": DGA_CONSUMER_KEY, 
-                "Content-Type": "application/json", 
+                "Consumer-Key": DGA_CONSUMER_KEY,
+                "Content-Type": "application/json",
             },
         });
 
-        // 4. ตรวจสอบสถานะ
+        // 1. ตรวจสอบสถานะ
         if (response.status !== 200 || !response.data.Result) {
             throw new Error(`Invalid Token Response or status ${response.status}`);
         }
         
         const token = response.data.Result; 
 
-        // 5. Response (ส่ง Token และค่า Debug กลับไป)
         res.json({
             success: true,
             token: token,
-            agentId: finalAgentId, 
+            agentId: DGA_AGENT_ID, 
             consumerKey: DGA_CONSUMER_KEY,
-            // 💡 เพิ่มค่าที่ Frontend ส่งมากลับไปเผื่อใช้ Debug
-            appIdReceived: frontendAppId || 'N/A',
-            mTokenReceived: frontendMToken || 'N/A',
         });
     } catch (err) {
         console.error("💥 Validate Error:", err.response?.data || err.message);
@@ -94,51 +84,45 @@ router.get("/validate", async (req, res) => {
 });
 
 /**
- * ✅ STEP 2: Login, ดึงข้อมูลผู้ใช้, และบันทึก/อัปเดต (UPSERT) ลง MongoDB
+ * ✅ STEP 2: ใช้ token จาก validate + appId + mToken เพื่อขอข้อมูลผู้ใช้
  */
 router.post("/login", async (req, res) => {
     try {
         console.log("🚀 [START] /api/login");
-        const { appId, mToken, token } = req.body; 
+        const { appId, mToken, token } = req.body;
 
-        if (!appId || !mToken || !token) {
-            return res.status(400).json({ success: false, message: "Missing AppId, MToken, or Token" });
-        }
+        if (!appId || !mToken || !token)
+            return res.status(400).json({ success: false, message: "Missing appId, mToken, or token" });
 
         const apiUrl = process.env.DGA_API_URL; 
 
-        // Headers: Consumer-Key, Content-Type, Token
         const headers = {
             "Consumer-Key": DGA_CONSUMER_KEY,
             "Content-Type": "application/json",
             "Token": token,
         };
-        
-        // Request Body: AppId, MToken
-        const requestBody = {
-            "AppId": appId,
-            "MToken": mToken,
-        };
 
+        console.log("🌐 [STEP] Calling DGA:", apiUrl);
         const response = await axiosInstance.post(
             apiUrl,
-            requestBody, 
-            { headers } 
+            { appId: appId, mToken: mToken },
+            { headers }
         );
 
         const result = response.data;
+        console.log("✅ DGA Response:", result);
 
-        // 1. ตรวจสอบสถานะ DGA (MessageCode 200)
-        if (result.messageCode !== 200) {
+        if (result.messageCode !== 200)
             throw new Error(result.message || "CZP API Error");
-        }
 
-        const user = result.result; 
+        const user = result.result;
 
-        // 2. 💾 Save to DB: Mongoose findOneAndUpdate (UPSERT)
+        // ✅ Save to DB (ใช้ Mongoose UPSERT แทน SQL)
         try {
             await UserModel.findOneAndUpdate(
+                // 1. Query: ค้นหาด้วย citizenId
                 { citizenId: user.citizenId },
+                // 2. Update/Set: ข้อมูลผู้ใช้ใหม่
                 {
                     userId: user.userId, 
                     firstname: user.firstName, 
@@ -146,15 +130,14 @@ router.post("/login", async (req, res) => {
                     mobile: user.mobile, 
                     email: user.email,
                 },
+                // 3. Options: upsert: true (Update or Insert)
                 { upsert: true, new: true, setDefaultsOnInsert: true } 
             );
-            console.log(`💾 User saved/updated successfully.`);
+            console.log("💾 User saved successfully to MongoDB");
         } catch (dbErr) {
-            console.error("⚠️ Database UPSERT error:", dbErr.message); 
-            // ไม่ได้ throw error ที่นี่ เพื่อให้ Response ยังคงสำเร็จ หากแค่ DB มีปัญหาชั่วคราว
+            console.error("⚠️ Database UPSERT error:", dbErr.message);
         }
 
-        // 3. Response
         res.json({
             success: true,
             message: "ดึงข้อมูลจาก CZP สำเร็จ",
@@ -163,7 +146,6 @@ router.post("/login", async (req, res) => {
     } catch (err) {
         console.error("💥 Login Error:", err.response?.data || err.message);
         const status = err.response?.status || 500;
-        
         res.status(status).json({
             success: false,
             message: "เกิดข้อผิดพลาดในการเชื่อมต่อกับ CZP",
@@ -179,36 +161,43 @@ router.post("/notification", async (req, res) => {
     try {
         console.log("🚀 [START] /api/notification");
 
+        // ✅ ดึงข้อมูลจาก body ที่ frontend ส่งมา
         const { appId, userId, token, message, sendDateTime } = req.body;
 
-        if (!appId || !userId || !token) {
+        console.log("📥 Notification Request Body:", req.body);
+        if (!appId || !userId || !token)
             return res.status(400).json({
                 success: false,
                 message: "Missing appId, userId, or token",
             });
-        }
 
         const Urlnoti = process.env.DGA_NOTI_API_URL; 
 
+        // ✅ Header ตามคู่มือ DGA
         const headers = {
             "Consumer-Key": DGA_CONSUMER_KEY,
             "Content-Type": "application/json",
-            Token: token,
+            "Token": token,
         };
 
+        // ✅ Body ตามรูปแบบที่คุณต้องการ
         const body = {
             appId: appId,
             data: [
                 {
-                    message: message || "ทดสอบข้อความ", 
+                    message: message || "ทดสอบข้อความ", // ค่า default
                     userId: userId,
                 },
             ],
             sendDateTime: sendDateTime || null
         };
 
+        console.log("🌐 [STEP] Calling DGA:", Urlnoti);
+
         const response = await axiosInstance.post(Urlnoti, body, { headers });
         const result = response.data;
+
+        console.log("✅ DGA Response:", result);
 
         res.json({
             success: true,

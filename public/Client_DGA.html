@@ -34,7 +34,7 @@
         .message { margin-top: 15px; padding: 10px 15px; border-radius: 6px; font-weight: 600; text-align: center; }
         .message.error { background-color: #4f2e2e; color: #ff6b6b; border: 1px solid #ff6b6b; }
         .message.success { background-color: #2e4f2e; color: #6bff6b; border: 1px solid #6bff6b; }
-        .message.info { background-color: #2e2f4f; color: #00bcd4; border: 1px solid #00bcd4; }
+        .message.info { background-color: #2e2e4f; color: #00bcd4; border: 1px solid #00bcd4; }
         .loading-spinner { border: 4px solid rgba(0, 188, 212, 0.3); width: 24px; height: 24px; border-radius: 50%; border-left-color: #00bcd4; animation: spin 1s ease infinite; display: inline-block; vertical-align: middle; margin-left: 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @media (max-width: 768px) { .container { grid-template-columns: 1fr; gap: 20px; padding: 20px; } h1 { font-size: 1.8em; margin-bottom: 30px; } h2 { font-size: 1.3em; margin-bottom: 15px; } .button-group { margin-top: 30px; } button { font-size: 1em; padding: 10px 20px; } }
@@ -62,7 +62,7 @@
         </div>
 
         <div class="button-group">
-            <button id="refreshDataBtn">
+            <button id="refreshDataBtn" onclick="fetchDGAData()">
                 🔄 รีเฟรชข้อมูล <span id="loadingSpinner" class="loading-spinner" style="display: none;"></span>
             </button>
         </div>
@@ -73,7 +73,8 @@
             <div id="logOutput" class="log-box"></div>
         </div>
     </div>
-<script>
+    
+    <script>
         const logOutput = document.getElementById('logOutput');
         const statusMessage = document.getElementById('statusMessage');
         const refreshDataBtn = document.getElementById('refreshDataBtn');
@@ -93,21 +94,25 @@
             statusMessage.className = `message ${type}`;
         }
 
-        // =========================================================
-        // ✅ ฟังก์ชันดึงค่า App ID / mToken (ใช้ค่าจริงเท่านั้น)
-        // =========================================================
+        // ✅ ฟังก์ชันดึงค่า App ID / mToken
         function getDgaParams() {
             const urlParams = new URLSearchParams(window.location.search);
             
+            // ดึงค่าจาก DOM ก่อน
+            const mockAppId = document.getElementById('appId').textContent;
+            const mockMToken = document.getElementById('mToken').textContent;
+
             const appId = 
                 (window.czpSdk && window.czpSdk.getAppId?.()) || // 1. จาก SDK
-                urlParams.get('appId');                         // 2. จาก URL Params
+                urlParams.get('appId') ||                         // 2. จาก URL Params
+                mockAppId;                                        // 3. จาก Mock Value ใน HTML
 
             const mToken = 
-                (window.czpSdk && window.czpSdk.getToken?.()) ||  // 1. จาก SDK
-                urlParams.get('mToken');                          // 2. จาก URL Params
+                (window.czpSdk && window.czpSdk.getToken?.()) ||  // 1. จาก SDK
+                urlParams.get('mToken') ||                        // 2. จาก URL Params
+                mockMToken;                                       // 3. จาก Mock Value ใน HTML
             
-            return { appId, mToken }; // คืนค่าจริง หรือ null/undefined
+            return { appId, mToken };
         }
 
         async function fetchDGAData() {
@@ -120,18 +125,18 @@
             try {
                 const { appId, mToken } = getDgaParams();
                 
-                // 🛑 ตรวจสอบค่าที่ขาดหาย (บังคับใช้ค่าจริง)
+                // 🛑 ตรวจสอบค่าจริง (แทนที่การใช้ Mock)
                 if (!appId || !mToken) {
-                     throw new Error("❌ ขาด App ID หรือ mToken: ต้องได้รับจาก URL หรือ DGA SDK");
+                     throw new Error("❌ ขาด App ID หรือ mToken: ต้องได้รับจาก URL หรือ DGA SDK เท่านั้น");
                 }
-
+                
                 // Update UI (แสดงค่าที่ได้มา)
-                document.getElementById('mToken').textContent = mToken;
-                document.getElementById('appId').textContent = appId;
+                document.getElementById('mToken').textContent = mToken || '-';
+                document.getElementById('appId').textContent = appId || '-';
                 
                 // 1. ✅ Validate เพื่อขอ Token (API: /test5/api/validate)
                 appendLog('กำลังเรียก Backend API: /test5/api/validate...', 'info');
-                // ใช้ GET ตาม DGA API Docs และ Express Router
+                // แก้ไข: ไม่ต้องส่ง params ไปเพราะ Secrets อยู่ใน Backend แล้ว
                 const validateRes = await axios.get("/test5/api/validate"); 
                 
                 const token = validateRes.data.token;
@@ -140,12 +145,12 @@
                 document.getElementById('agentId').textContent = validateRes.data.agentId || '-';
                 document.getElementById('consumerKey').textContent = validateRes.data.consumerKey || '-';
 
-                appendLog(`✅ ได้ Access Token (สำเร็จ)`, 'success');
+                appendLog(`✅ ได้ Access Token: ${token.substring(0, 10)}...`, 'success');
 
                 // 2. ✅ Login, ดึงข้อมูลผู้ใช้, และบันทึก/อัปเดต (API: /test5/api/login)
                 appendLog('กำลังเรียก Backend API: /test5/api/login...', 'info');
                 
-                // สร้าง Body สำหรับ Login (ใช้ค่าจริงที่ได้มา)
+                // ส่ง appId, mToken, และ token ไปพร้อมกันใน body (ตาม API.js Logic)
                 const loginBody = { 
                     appId: appId,
                     mToken: mToken,
@@ -188,9 +193,6 @@
             }
         }
 
-        // Run fetchDGAData เมื่อมีการคลิกปุ่ม
-        document.getElementById('refreshDataBtn').addEventListener('click', fetchDGAData);
-        
         // รันอัตโนมัติเมื่อโหลดหน้า (ถ้าต้องการ)
         window.addEventListener('load', fetchDGAData); 
 
