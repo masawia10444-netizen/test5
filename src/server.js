@@ -1,36 +1,46 @@
 const express = require("express");
 const path = require("path");
-const apiRoutes = require("./routes/api");
-const { initDB } = require("./db");
 
+// ✅ นำเข้า Express Router สำหรับ API
+const apiRoutes = require("./route/api"); 
+
+// ✅ นำเข้าฟังก์ชันเชื่อมต่อฐานข้อมูล MongoDB
+const { initDB } = require("./utils/db"); 
+
+// ✅ นำเข้าและตั้งค่า dotenv เพื่อโหลดตัวแปรจากไฟล์ .env
 require("dotenv").config();
 
 const app = express();
-const PORT = process.env.PORT || 3003;
+// ดึงค่า PORT จาก .env หรือใช้ค่า default 1040
+const PORT = process.env.PORT || 1040;
 
+// Middleware สำหรับการจัดการ JSON request body (ใช้ใน /login และ /notification)
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "../public")));
 
-// ✅ Redirect root ไป /test5 อัตโนมัติ
+// --- การกำหนด Routes ---
+
+// 1. ✅ Static Files (สำหรับ CSS, JS, Fonts, Images)
+// Express จะมองหาไฟล์ใน /public/ เมื่อ Path เริ่มต้นด้วย /test5
+app.use("/test5", express.static(path.join(__dirname, "../public"))); 
+
+// 2. ✅ Redirect Root: / ไปที่ /test5
 app.get("/", (req, res) => {
-  res.redirect("/test5");
+    res.redirect("/test5");
 });
 
-// ✅ หน้า test5
+// 3. ✅ Frontend Main Page: /test5
+// เสิร์ฟ Client_DGA.html โดยใช้ path.resolve เพื่อแก้ปัญหา ENOENT
 app.get("/test5", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/test5.html"));
+    res.sendFile(path.resolve(__dirname, '..', 'public', 'Client_DGA.html')); 
 });
 
-// ✅ หน้า home (ถ้ามี)
-app.get("/home", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/index.html"));
-});
-
-// ✅ ใช้งาน API routes
+// 4. ✅ API Routes
+// Endpoint ต้องเป็น /test5/api เพื่อรับ Request ที่มาจาก NPM และ Frontend
 app.use("/test5/api", apiRoutes);
 
-// ✅ Start server + init DB
+// 5. ✅ Start server และเริ่มต้นฐานข้อมูล
 app.listen(PORT, async () => {
-  await initDB();
-  console.log(`🚀 Server running at http://localhost:${PORT}/test5`);
+    // เรียกใช้ initDB เพื่อเชื่อมต่อฐานข้อมูล MongoDB Atlas
+    await initDB(); 
+    console.log(`🚀 Server running at http://localhost:${PORT}/test5`);
 });
