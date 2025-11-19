@@ -38,32 +38,43 @@ router.get("/env-config", (req, res) => {
 /**
  * ✅ STEP 1: Validate และขอ Token จาก eGov
  */
-router.get("/validate", async (req, res) => {
+router.get("/validate", async (req, res) => { // ⬅️ ต้องใช้ router.get()
     try {
-        console.log("🚀 [START] /api/validate");
+        console.log("🚀 [START] /api/validate (GET)");
 
-        // ใช้ DGA_AUTH_URL และ Secrets จากตัวแปรที่กำหนดไว้
+        // 1. สร้าง Request URL พร้อม Query Parameters (ConsumerSecret และ AgentID)
+        // DGA_AUTH_URL: https://api.egov.go.th/ws/auth/validate
         const url = `${process.env.DGA_AUTH_URL}?ConsumerSecret=${DGA_CONSUMER_SECRET}&AgentID=${DGA_AGENT_ID}`; 
         
+        console.log("🔗 Requesting DGA Validate:", url);
+
+        // 2. ส่ง Request พร้อม Headers (Consumer-Key และ Content-Type)
         const response = await axiosInstance.get(url, {
             headers: {
-                "Consumer-Key": DGA_CONSUMER_KEY,
-                "Content-Type": "application/json",
+                "Consumer-Key": DGA_CONSUMER_KEY, // ⬅️ Consumer-Key ใน Header
+                "Content-Type": "application/json", // ⬅️ Content-Type ใน Header
             },
         });
 
-        if (!response.data.Result) throw new Error("Invalid Token Response");
+        // 3. ตรวจสอบผลลัพธ์ (Response 200 OK และมี "Result")
+        if (response.status !== 200 || !response.data.Result) {
+            throw new Error(`Invalid Token Response or status ${response.status}`);
+        }
+        
+        const token = response.data.Result; // นี่คือ Access Token ที่ต้องการ
 
         res.json({
             success: true,
-            token: response.data.Result,
-            // ส่ง DGA_AGENT_ID และ DGA_CONSUMER_KEY กลับไปเผื่อ Frontend ต้องการแสดงผล
+            token: token,
+            // ส่ง DGA ID กลับไปให้ Frontend สำหรับ Debug/แสดงผล
             agentId: DGA_AGENT_ID, 
             consumerKey: DGA_CONSUMER_KEY,
         });
     } catch (err) {
         console.error("💥 Validate Error:", err.response?.data || err.message);
-        res.status(500).json({
+        // ถ้า DGA ตอบกลับด้วยสถานะที่ไม่ใช่ 2xx ให้ส่ง Error Code กลับไป
+        const status = err.response?.status || 500;
+        res.status(status).json({
             success: false,
             message: "การ Validate token ล้มเหลว",
             error: err.response?.data || err.message,
@@ -77,59 +88,68 @@ router.get("/validate", async (req, res) => {
 router.post("/login", async (req, res) => {
     try {
         console.log("🚀 [START] /api/login");
-        const { appId, mToken, token } = req.body;
+        // รับค่า AppId, MToken และ Token จาก Frontend
+        const { appId, mToken, token } = req.body; 
 
-        if (!appId || !mToken || !token)
-            return res.status(400).json({ success: false, message: "Missing appId, mToken, or token" });
+        if (!appId || !mToken || !token) {
+            return res.status(400).json({ success: false, message: "Missing AppId, MToken, or Token" });
+        }
 
-        const apiUrl = process.env.DGA_API_URL; 
+        const apiUrl = process.env.DGA_API_URL; // https://api.egov.go.th/ws/dga/czp/uat/v1/core/shield/data/deproc
 
+        // 1. Headers: Consumer-Key, Content-Type, Token
         const headers = {
-            "Consumer-Key": DGA_CONSUMER_KEY,
-            "Content-Type": "application/json",
-            Token: token,
+            "Consumer-Key": DGA_CONSUMER_KEY, // ⬅️ REQUIRED
+            "Content-Type": "application/json", // ⬅️ REQUIRED
+            "Token": token, // ⬅️ REQUIRED (Access Token ที่ได้จาก /validate)
         };
+        
+        // 2. Request Body: AppId, MToken
+        const requestBody = {
+            "AppId": appId, // ⬅️ REQUIRED
+            "MToken": mToken, // ⬅️ REQUIRED
+        };
+
+        console.log("💡 Calling DGA Data Retrieval API:", apiUrl);
 
         const response = await axiosInstance.post(
             apiUrl,
-            { appId: appId, mToken: mToken },
-            { headers }
+            requestBody, // ส่ง Body ที่มี AppId และ MToken
+            { headers } // ส่ง Headers
         );
-        console.log("💡 CZP API Response:", response.data);
+
         const result = response.data;
 
-        if (result.messageCode !== 200)
+        // 3. ตรวจสอบสถานะ Response
+        if (result.messageCode !== 200) {
             throw new Error(result.message || "CZP API Error");
+        }
 
-        const user = result.result;
+        const user = result.result; // Object ข้อมูลผู้ใช้
 
-        // 💾 Save to DB: แปลงจาก SQL ON CONFLICT เป็น Mongoose findOneAndUpdate (UPSERT)
+        // 4. 💾 บันทึก/อัปเดตข้อมูลผู้ใช้ใน MongoDB (UPSERT)
         try {
-            const upsertedUser = await UserModel.findOneAndUpdate(
-                // 1. Query: ค้นหาจาก citizenId (เทียบเท่า WHERE citizenId = ...)
+            await UserModel.findOneAndUpdate(
                 { citizenId: user.citizenId },
-                // 2. Update/Set: ตั้งค่าฟิลด์ที่จะอัปเดตหรือสร้างใหม่
                 {
                     userId: user.userId, 
                     firstname: user.firstName, 
                     lastname: user.lastName, 
-                    mobile: user.mobile,
+                    mobile: user.mobile, // ข้อมูลนี้ตรงกับ Schema ที่สร้างไว้
                     email: user.email,
                 },
-                // 3. Options: upsert: true คือถ้าไม่เจอให้สร้างใหม่ (ON CONFLICT)
                 { upsert: true, new: true, setDefaultsOnInsert: true } 
             );
-
-            console.log(`💾 User saved/updated successfully (MongoDB ID: ${upsertedUser._id})`);
+            console.log(`💾 User saved/updated successfully.`);
         } catch (dbErr) {
             console.error("⚠️ Database UPSERT error:", dbErr.message); 
-            // อาจจะส่ง status 500 กลับไปถ้าต้องการให้ DB Error หยุด flow
         }
 
+        // 5. Response
         res.json({
             success: true,
             message: "ดึงข้อมูลจาก CZP สำเร็จ",
-            user,
+            user: user, // ส่ง Object user กลับไปให้ Frontend
         });
     } catch (err) {
         console.error("💥 Login Error:", err.response?.data || err.message);

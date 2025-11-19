@@ -55,8 +55,8 @@
 
         <div class="card">
             <h2>ข้อมูลระบบ</h2>
-            <div class="data-row"><span class="data-label">App ID:</span><span id="appId" class="data-value">MOCK_APP_ID_FOR_TESTING</span></div> 
-            <div class="data-row"><span class="data-label">mToken:</span><span id="mToken" class="data-value">MOCK_DGA_MTOKEN_FOR_TESTING</span></div>
+            <div class="data-row"><span class="data-label">App ID:</span><span id="appId" class="data-value"></span></div> 
+            <div class="data-row"><span class="data-label">mToken:</span><span id="mToken" class="data-value"></span></div>
             <div class="data-row"><span class="data-label">Agent ID:</span><span id="agentId" class="data-value">-</span></div>
             <div class="data-row"><span class="data-label">Consumer Key:</span><span id="consumerKey" class="data-value">-</span></div>
         </div>
@@ -73,14 +73,13 @@
             <div id="logOutput" class="log-box"></div>
         </div>
     </div>
-
-    <script>
+<script>
         const logOutput = document.getElementById('logOutput');
         const statusMessage = document.getElementById('statusMessage');
         const refreshDataBtn = document.getElementById('refreshDataBtn');
         const loadingSpinner = document.getElementById('loadingSpinner');
 
-        // ฟังก์ชันจัดการ Log/Status
+        // ฟังก์ชันจัดการ Log/Status (คงไว้ตามเดิม)
         function appendLog(message, type = 'info') {
             const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const logEntry = document.createElement('p');
@@ -94,6 +93,27 @@
             statusMessage.className = `message ${type}`;
         }
 
+        // =========================================================
+        // ✅ NEW: ฟังก์ชันดึงค่า App ID / mToken ตามลำดับความสำคัญ
+        // =========================================================
+        function getDgaParams() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const mockAppId = document.getElementById('appId').textContent;
+            const mockMToken = document.getElementById('mToken').textContent;
+
+            const appId = 
+                (window.czpSdk && window.czpSdk.getAppId?.()) || // 1. จาก SDK
+                urlParams.get('appId') ||                         // 2. จาก URL Params
+                mockAppId;                                        // 3. จาก Mock Value ใน HTML
+
+            const mToken = 
+                (window.czpSdk && window.czpSdk.getToken?.()) ||  // 1. จาก SDK
+                urlParams.get('mToken') ||                        // 2. จาก URL Params
+                mockMToken;                                       // 3. จาก Mock Value ใน HTML
+            
+            return { appId, mToken };
+        }
+
         async function fetchDGAData() {
             loadingSpinner.style.display = 'inline-block';
             refreshDataBtn.disabled = true;
@@ -102,28 +122,23 @@
             appendLog('เริ่มการเรียกข้อมูล DGA...', 'info');
 
             try {
-                const urlParams = new URLSearchParams(window.location.search);
-                console.log("💡 URL Params:", Object.fromEntries(urlParams.entries()));
+                const { appId, mToken } = getDgaParams();
                 
-                // 1. ดึงค่าจาก URL Params หรือใช้ค่า Mock ที่กำหนดใน HTML
-                const appId = urlParams.get('appId') || document.getElementById('appId').textContent;
-                const mToken = urlParams.get('mToken') || document.getElementById('mToken').textContent; 
-
-                
-                // Update UI (เพื่อแสดงค่า Mock/จริงที่ใช้)
+                // Update UI (แสดงค่าที่ได้มา)
                 document.getElementById('mToken').textContent = mToken;
                 document.getElementById('appId').textContent = appId;
                 
-                // if (mToken.includes('MOCK') || appId.includes('MOCK')) {
-                //      appendLog('⚠️ ใช้ค่า MOCK App ID หรือ MToken อาจทำให้ API ล้มเหลว', 'warn');
-                // }
+                // ตรวจสอบความถูกต้องเบื้องต้น
+                if (!appId || appId === 'MOCK_APP_ID_FOR_TESTING' || !mToken || mToken === 'MOCK_DGA_MTOKEN_FOR_TESTING') {
+                     appendLog('⚠️ ใช้ค่า Mock หรือค่าว่าง กรุณาตรวจสอบการตั้งค่า DGA SDK/URL', 'warn');
+                }
 
-                // 2. ✅ Validate เพื่อขอ Token (API: /test5/api/validate)
-                // appendLog('กำลังเรียก /test5/api/validate...', 'info');
-                // const validateRes = await axios.get("/test5/api/validate"); 
+                // 1. ✅ Validate เพื่อขอ Token (API: /test5/api/validate)
+                // Note: เราเปลี่ยนเป็น POST ใน Express แล้ว
+                appendLog('กำลังเรียก /test5/api/validate...', 'info');
+                const validateRes = await axios.post("/test5/api/validate"); // ⬅️ ใช้ POST
                 
                 const token = validateRes.data.token;
-                console.log("💡 DGA token:", token);
                 
                 // ดึง Agent ID และ Consumer Key จาก Response ของ /validate
                 document.getElementById('agentId').textContent = validateRes.data.agentId || '-';
@@ -131,7 +146,7 @@
 
                 appendLog(`✅ ได้ Access Token: ${token.substring(0, 10)}...`, 'success');
 
-                // 3. ✅ Login, ดึงข้อมูลผู้ใช้, และบันทึก/อัปเดต (API: /test5/api/login)
+                // 2. ✅ Login, ดึงข้อมูลผู้ใช้, และบันทึก/อัปเดต (API: /test5/api/login)
                 appendLog('กำลังเรียก /test5/api/login...', 'info');
                 
                 // ส่ง appId, mToken, และ token ไปพร้อมกันใน body (ตาม API.js Logic)
@@ -140,16 +155,16 @@
                     mToken: mToken,
                     token: token 
                 });
-                console.log("💡 DGA Login Response:", loginRes.data);
+                
                 const userData = loginRes.data.user;
                 appendLog('✅ ดึงข้อมูลผู้ใช้สำเร็จและบันทึกใน MongoDB', 'success');
 
-                // 4. ✅ แสดงผลข้อมูลผู้ใช้
+                // 3. ✅ แสดงผลข้อมูลผู้ใช้
                 document.getElementById('citizenId').textContent = userData.citizenId || '-';
                 document.getElementById('firstName').textContent = userData.firstName || '-';
                 document.getElementById('lastName').textContent = userData.lastName || '-';
-                document.getElementById('mobile').textContent = userData.mobile || '-'; // ตรงกับ ID ใน HTML
-                document.getElementById('email').textContent = userData.email || '-'; // ตรงกับ ID ใน HTML
+                document.getElementById('mobile').textContent = userData.mobile || '-'; 
+                document.getElementById('email').textContent = userData.email || '-'; 
 
                 setStatus('✔️ โหลดข้อมูลสำเร็จแล้ว', 'success');
 
@@ -179,6 +194,11 @@
         
         // รันอัตโนมัติเมื่อโหลดหน้า (ถ้าต้องการ)
         window.addEventListener('load', fetchDGAData); 
+
+        window.onerror = function(message, source, lineno, colno, error) {
+            appendLog(`Browser JS Error: ${message} at ${source}:${lineno}`, 'error');
+            return false;
+        };
     </script>
 </body>
 </html>
