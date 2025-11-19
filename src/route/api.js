@@ -33,49 +33,56 @@ router.get("/env-config", (req, res) => {
     });
 });
 
-/**
+/** 
  * ✅ STEP 1: Validate และขอ Token จาก eGov (เมธอด GET ตาม DGA)
  */
 router.get("/validate", async (req, res) => { 
     try {
         console.log("🚀 [START] /api/validate (GET)");
 
-        // สร้าง URL พร้อม Query Parameters: ConsumerSecret และ AgentID
-        // 💡 ใช้ DGA_CONSUMER_SECRET_AUTH และ DGA_AGENT_ID_AUTH โดยตรงจาก ENV
-        const url = `${process.env.DGA_AUTH_URL}?ConsumerSecret=${DGA_CONSUMER_SECRET}&AgentID=${DGA_AGENT_ID}`; 
+        // 💡 1. ดึงค่าจาก Query Parameters ที่ Frontend อาจส่งมา (เช่น appId, mToken)
+        const frontendAppId = req.query.appId;
+        const frontendMToken = req.query.mToken;
+
+        // 2. กำหนดค่า Secrets ที่ใช้ในการเรียก DGA (ใช้ค่าจาก .env เสมอเพื่อความปลอดภัย)
+        const finalSecret = DGA_CONSUMER_SECRET; // Secret Key
+        const finalAgentId = DGA_AGENT_ID;       // Agent ID
+
+        // 3. สร้าง Request URL สำหรับ DGA Validate
+        // NOTE: เราใช้ finalSecret และ finalAgentId ที่มาจาก ENV เสมอ
+        const url = `${process.env.DGA_AUTH_URL}?ConsumerSecret=${finalSecret}&AgentID=${finalAgentId}`; 
         
         const response = await axiosInstance.get(url, {
             headers: {
-                "Consumer-Key": DGA_CONSUMER_KEY, // ใน Header
-                "Content-Type": "application/json", // ใน Header
+                "Consumer-Key": DGA_CONSUMER_KEY, 
+                "Content-Type": "application/json", 
             },
         });
 
-        // 1. ตรวจสอบสถานะ (ถ้ามาถึงตรงนี้ สถานะน่าจะเป็น 200)
+        // 4. ตรวจสอบสถานะ
         if (response.status !== 200 || !response.data.Result) {
             throw new Error(`Invalid Token Response or status ${response.status}`);
         }
         
         const token = response.data.Result; 
 
+        // 5. Response (ส่ง Token และค่า Debug กลับไป)
         res.json({
             success: true,
             token: token,
-            agentId: DGA_AGENT_ID, 
+            agentId: finalAgentId, 
             consumerKey: DGA_CONSUMER_KEY,
+            // 💡 เพิ่มค่าที่ Frontend ส่งมากลับไปเผื่อใช้ Debug
+            appIdReceived: frontendAppId || 'N/A',
+            mTokenReceived: frontendMToken || 'N/A',
         });
     } catch (err) {
         console.error("💥 Validate Error:", err.response?.data || err.message);
         
-        // 2. 💡 ดึง HTTP Status Code จาก Axios Error และส่งกลับไปให้ Frontend
         const status = err.response?.status || 500;
-        
-        // กำหนดข้อความ Error ที่ชัดเจนสำหรับ 403 Forbidden
         let message = "การ Validate token ล้มเหลว";
         if (status === 403) {
             message = "Forbidden: IP Whitelist หรือ Secrets ผิดพลาด";
-        } else if (status === 401) {
-            message = "Unauthorized: ตรวจสอบ Consumer Key/Secret";
         }
 
         res.status(status).json({
