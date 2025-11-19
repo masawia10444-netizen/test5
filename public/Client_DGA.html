@@ -136,7 +136,7 @@
                 // 1. ✅ Validate เพื่อขอ Token (API: /test5/api/validate)
                 // Note: เราเปลี่ยนเป็น POST ใน Express แล้ว
                 appendLog('กำลังเรียก /test5/api/validate...', 'info');
-                const validateRes = await axios.post("/test5/api/validate"); // ⬅️ ใช้ POST
+                const validateRes = await axios.get("/test5/api/validate"); // ⬅️ ใช้ POST
                 
                 const token = validateRes.data.token;
                 

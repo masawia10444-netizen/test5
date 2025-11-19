@@ -37,7 +37,7 @@ app.get("/test5", (req, res) => {
 
 // 4. ✅ API Routes
 // Endpoint ต้องเป็น /test5/api เพื่อรับ Request ที่มาจาก NPM
-app.use("/api", apiRoutes);
+app.use("/test5/api", apiRoutes);
 
 // 5. ✅ Start server และเริ่มต้นฐานข้อมูล
 app.listen(PORT, async () => {
