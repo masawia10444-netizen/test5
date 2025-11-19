@@ -2,7 +2,7 @@ const express = require("express");
 const path = require("path");
 
 // ✅ นำเข้า Express Router สำหรับ API
-const apiRoutes = require("./route/api"); 
+const apiRoutes = require("./api"); 
 
 // ✅ นำเข้าฟังก์ชันเชื่อมต่อฐานข้อมูล MongoDB
 const { initDB } = require("./utils/db"); 
@@ -19,28 +19,26 @@ app.use(express.json());
 
 // --- การกำหนด Routes ---
 
-// 1. ✅ Static Files (สำหรับ CSS, JS, Fonts, Images)
-// Express จะมองหาไฟล์ใน /public/ เมื่อ Path เริ่มต้นด้วย /test5
-app.use("/test5", express.static(path.join(__dirname, "../public"))); 
-
-// 2. ✅ Redirect Root: / ไปที่ /test5
+// ✅ Redirect root ไป /test5 อัตโนมัติ
 app.get("/", (req, res) => {
-    res.redirect("/test5");
+  res.redirect("/test5");
 });
 
-// 3. ✅ Frontend Main Page: /test5
-// เสิร์ฟ Client_DGA.html โดยใช้ path.resolve เพื่อแก้ปัญหา ENOENT
+// ✅ หน้า test5
 app.get("/test5", (req, res) => {
-    res.sendFile(path.resolve(__dirname, '..', 'public', 'Client_DGA.html')); 
+  res.sendFile(path.join(__dirname, "../public/test5.html"));
 });
 
-// 4. ✅ API Routes
-// Endpoint ต้องเป็น /test5/api เพื่อรับ Request ที่มาจาก NPM และ Frontend
+// ✅ หน้า home (ถ้ามี)
+app.get("/home", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/index.html"));
+});
+
+// ✅ ใช้งาน API routes
 app.use("/test5/api", apiRoutes);
 
-// 5. ✅ Start server และเริ่มต้นฐานข้อมูล
+// ✅ Start server + init DB
 app.listen(PORT, async () => {
-    // เรียกใช้ initDB เพื่อเชื่อมต่อฐานข้อมูล MongoDB Atlas
-    await initDB(); 
-    console.log(`🚀 Server running at http://localhost:${PORT}/test5`);
+  await initDB();
+  console.log(`🚀 Server running at http://localhost:${PORT}/test5`);
 });
