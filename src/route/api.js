@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const axios = require("axios");
 
-// ❌ ลบ const { pool } = require("../db"); (ถ้าคุณเปลี่ยนเป็น MongoDB แล้ว)
 // ✅ นำเข้า Mongoose Model (User)
 const UserModel = require("../models/userModel"); 
 
@@ -42,6 +41,7 @@ router.get("/validate", async (req, res) => {
         console.log("🚀 [START] /api/validate (GET)");
 
         // สร้าง URL พร้อม Query Parameters: ConsumerSecret และ AgentID
+        // 💡 ใช้ DGA_CONSUMER_SECRET_AUTH และ DGA_AGENT_ID_AUTH โดยตรงจาก ENV
         const url = `${process.env.DGA_AUTH_URL}?ConsumerSecret=${DGA_CONSUMER_SECRET}&AgentID=${DGA_AGENT_ID}`; 
         
         const response = await axiosInstance.get(url, {
@@ -67,11 +67,10 @@ router.get("/validate", async (req, res) => {
     } catch (err) {
         console.error("💥 Validate Error:", err.response?.data || err.message);
         
-        // 2. 💡 แก้ไข: ดึง HTTP Status Code จาก Axios Error และส่งกลับไปให้ Frontend
-        // ถ้า DGA ปฏิเสธการเชื่อมต่อ/สิทธิ์ จะส่ง Status Code ที่ถูกต้องมา
+        // 2. 💡 ดึง HTTP Status Code จาก Axios Error และส่งกลับไปให้ Frontend
         const status = err.response?.status || 500;
         
-        // กำหนดข้อความ Error ที่ชัดเจน
+        // กำหนดข้อความ Error ที่ชัดเจนสำหรับ 403 Forbidden
         let message = "การ Validate token ล้มเหลว";
         if (status === 403) {
             message = "Forbidden: IP Whitelist หรือ Secrets ผิดพลาด";
@@ -145,6 +144,7 @@ router.post("/login", async (req, res) => {
             console.log(`💾 User saved/updated successfully.`);
         } catch (dbErr) {
             console.error("⚠️ Database UPSERT error:", dbErr.message); 
+            // ไม่ได้ throw error ที่นี่ เพื่อให้ Response ยังคงสำเร็จ หากแค่ DB มีปัญหาชั่วคราว
         }
 
         // 3. Response
@@ -155,7 +155,6 @@ router.post("/login", async (req, res) => {
         });
     } catch (err) {
         console.error("💥 Login Error:", err.response?.data || err.message);
-        // 💡 แก้ไข: ดึง HTTP Status Code จาก Axios Error สำหรับ Login
         const status = err.response?.status || 500;
         
         res.status(status).json({
@@ -170,7 +169,6 @@ router.post("/login", async (req, res) => {
  * ✅ STEP 3: ส่ง Notification ไปยัง eGov
  */
 router.post("/notification", async (req, res) => {
-    // ... (Logic ส่วนนี้ไม่มีการเปลี่ยนแปลง)
     try {
         console.log("🚀 [START] /api/notification");
 

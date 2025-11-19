@@ -34,7 +34,7 @@
         .message { margin-top: 15px; padding: 10px 15px; border-radius: 6px; font-weight: 600; text-align: center; }
         .message.error { background-color: #4f2e2e; color: #ff6b6b; border: 1px solid #ff6b6b; }
         .message.success { background-color: #2e4f2e; color: #6bff6b; border: 1px solid #6bff6b; }
-        .message.info { background-color: #2e2e4f; color: #00bcd4; border: 1px solid #00bcd4; }
+        .message.info { background-color: #2e2f4f; color: #00bcd4; border: 1px solid #00bcd4; }
         .loading-spinner { border: 4px solid rgba(0, 188, 212, 0.3); width: 24px; height: 24px; border-radius: 50%; border-left-color: #00bcd4; animation: spin 1s ease infinite; display: inline-block; vertical-align: middle; margin-left: 10px; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         @media (max-width: 768px) { .container { grid-template-columns: 1fr; gap: 20px; padding: 20px; } h1 { font-size: 1.8em; margin-bottom: 30px; } h2 { font-size: 1.3em; margin-bottom: 15px; } .button-group { margin-top: 30px; } button { font-size: 1em; padding: 10px 20px; } }
@@ -79,7 +79,7 @@
         const refreshDataBtn = document.getElementById('refreshDataBtn');
         const loadingSpinner = document.getElementById('loadingSpinner');
 
-        // ฟังก์ชันจัดการ Log/Status (คงไว้ตามเดิม)
+        // ฟังก์ชันจัดการ Log/Status
         function appendLog(message, type = 'info') {
             const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             const logEntry = document.createElement('p');
@@ -94,24 +94,20 @@
         }
 
         // =========================================================
-        // ✅ NEW: ฟังก์ชันดึงค่า App ID / mToken ตามลำดับความสำคัญ
+        // ✅ ฟังก์ชันดึงค่า App ID / mToken (ใช้ค่าจริงเท่านั้น)
         // =========================================================
         function getDgaParams() {
             const urlParams = new URLSearchParams(window.location.search);
-            const mockAppId = document.getElementById('appId').textContent;
-            const mockMToken = document.getElementById('mToken').textContent;
-
+            
             const appId = 
                 (window.czpSdk && window.czpSdk.getAppId?.()) || // 1. จาก SDK
-                urlParams.get('appId') ||                         // 2. จาก URL Params
-                mockAppId;                                        // 3. จาก Mock Value ใน HTML
+                urlParams.get('appId');                         // 2. จาก URL Params
 
             const mToken = 
                 (window.czpSdk && window.czpSdk.getToken?.()) ||  // 1. จาก SDK
-                urlParams.get('mToken') ||                        // 2. จาก URL Params
-                mockMToken;                                       // 3. จาก Mock Value ใน HTML
+                urlParams.get('mToken');                          // 2. จาก URL Params
             
-            return { appId, mToken };
+            return { appId, mToken }; // คืนค่าจริง หรือ null/undefined
         }
 
         async function fetchDGAData() {
@@ -124,19 +120,19 @@
             try {
                 const { appId, mToken } = getDgaParams();
                 
+                // 🛑 ตรวจสอบค่าที่ขาดหาย (บังคับใช้ค่าจริง)
+                if (!appId || !mToken) {
+                     throw new Error("❌ ขาด App ID หรือ mToken: ต้องได้รับจาก URL หรือ DGA SDK");
+                }
+
                 // Update UI (แสดงค่าที่ได้มา)
                 document.getElementById('mToken').textContent = mToken;
                 document.getElementById('appId').textContent = appId;
                 
-                // ตรวจสอบความถูกต้องเบื้องต้น
-                if (!appId || appId === 'MOCK_APP_ID_FOR_TESTING' || !mToken || mToken === 'MOCK_DGA_MTOKEN_FOR_TESTING') {
-                     appendLog('⚠️ ใช้ค่า Mock หรือค่าว่าง กรุณาตรวจสอบการตั้งค่า DGA SDK/URL', 'warn');
-                }
-
                 // 1. ✅ Validate เพื่อขอ Token (API: /test5/api/validate)
-                // Note: เราเปลี่ยนเป็น POST ใน Express แล้ว
-                appendLog('กำลังเรียก /test5/api/validate...', 'info');
-                const validateRes = await axios.get("/test5/api/validate"); // ⬅️ ใช้ POST
+                appendLog('กำลังเรียก Backend API: /test5/api/validate...', 'info');
+                // ใช้ GET ตาม DGA API Docs และ Express Router
+                const validateRes = await axios.get("/test5/api/validate"); 
                 
                 const token = validateRes.data.token;
                 
@@ -144,17 +140,19 @@
                 document.getElementById('agentId').textContent = validateRes.data.agentId || '-';
                 document.getElementById('consumerKey').textContent = validateRes.data.consumerKey || '-';
 
-                appendLog(`✅ ได้ Access Token: ${token.substring(0, 10)}...`, 'success');
+                appendLog(`✅ ได้ Access Token (สำเร็จ)`, 'success');
 
                 // 2. ✅ Login, ดึงข้อมูลผู้ใช้, และบันทึก/อัปเดต (API: /test5/api/login)
-                appendLog('กำลังเรียก /test5/api/login...', 'info');
+                appendLog('กำลังเรียก Backend API: /test5/api/login...', 'info');
                 
-                // ส่ง appId, mToken, และ token ไปพร้อมกันใน body (ตาม API.js Logic)
-                const loginRes = await axios.post("/test5/api/login", { 
+                // สร้าง Body สำหรับ Login (ใช้ค่าจริงที่ได้มา)
+                const loginBody = { 
                     appId: appId,
                     mToken: mToken,
                     token: token 
-                });
+                };
+
+                const loginRes = await axios.post("/test5/api/login", loginBody); 
                 
                 const userData = loginRes.data.user;
                 appendLog('✅ ดึงข้อมูลผู้ใช้สำเร็จและบันทึกใน MongoDB', 'success');
@@ -173,6 +171,7 @@
                 let errorMessage = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
                 
                 if (error.response) {
+                    // แสดง Error Code และ Message จาก Backend (เช่น 403 Forbidden)
                     errorMessage = `${error.response.status} - ${error.response.data.message || error.response.statusText}`;
                     appendLog(`API Error: ${errorMessage}`, 'error');
                 } else if (error.request) {
@@ -195,6 +194,7 @@
         // รันอัตโนมัติเมื่อโหลดหน้า (ถ้าต้องการ)
         window.addEventListener('load', fetchDGAData); 
 
+        // Global Error Handler สำหรับ Frontend JS
         window.onerror = function(message, source, lineno, colno, error) {
             appendLog(`Browser JS Error: ${message} at ${source}:${lineno}`, 'error');
             return false;
