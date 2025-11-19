@@ -2,10 +2,10 @@ const express = require("express");
 const path = require("path");
 
 // ✅ นำเข้า Express Router สำหรับ API
-const apiRoutes = require("./api"); 
+const apiRoutes = require("./route/api"); 
 
 // ✅ นำเข้าฟังก์ชันเชื่อมต่อฐานข้อมูล MongoDB
-const { initDB } = require("./utils/db"); 
+const { initDB } = require("./util/mongo"); 
 
 // ✅ นำเข้าและตั้งค่า dotenv เพื่อโหลดตัวแปรจากไฟล์ .env
 require("dotenv").config();
