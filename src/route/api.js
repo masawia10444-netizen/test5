@@ -37,21 +37,23 @@ router.get("/env-config", (req, res) => {
 /**
  * ✅ STEP 1: Validate และขอ Token จาก eGov (เมธอด GET ตาม DGA)
  */
+/**
+ * ✅ STEP 1: Validate และขอ Token จาก eGov (เมธอด GET ตาม DGA)
+ */
 router.get("/validate", async (req, res) => { 
     try {
-        console.log("🚀 [START] /api/validate (GET)");
+        // ... (โค้ดสร้าง URL และส่ง Request ไป DGA)
 
-        // สร้าง URL พร้อม Query Parameters: ConsumerSecret และ AgentID
-        const url = `${process.env.DGA_AUTH_URL}?ConsumerSecret=${DGA_CONSUMER_SECRET}&AgentID=${DGA_AGENT_ID}`; 
-        
         const response = await axiosInstance.get(url, {
             headers: {
-                "Consumer-Key": DGA_CONSUMER_KEY, // ใน Header
-                "Content-Type": "application/json", // ใน Header
+                "Consumer-Key": DGA_CONSUMER_KEY, 
+                "Content-Type": "application/json", 
             },
         });
-
+        
+        // 1. ตรวจสอบสถานะ: ถ้าไม่ใช่ 200 ให้ส่ง Error ทันที
         if (response.status !== 200 || !response.data.Result) {
+            // หาก DGA คืน 403, Axios จะ throw error ก่อนถึงบรรทัดนี้
             throw new Error(`Invalid Token Response or status ${response.status}`);
         }
         
@@ -60,16 +62,21 @@ router.get("/validate", async (req, res) => {
         res.json({
             success: true,
             token: token,
-            // ส่ง DGA ID กลับไปให้ Frontend 
             agentId: DGA_AGENT_ID, 
             consumerKey: DGA_CONSUMER_KEY,
         });
     } catch (err) {
         console.error("💥 Validate Error:", err.response?.data || err.message);
+        
+        // 2. 💡 แก้ไข: ดึง HTTP Status Code จาก Axios Error และส่งกลับไปให้ Frontend
         const status = err.response?.status || 500;
+        
+        // ถ้าเป็น 403 ให้ระบุชัดเจนว่าเป็น Forbidden
+        const message = status === 403 ? "Forbidden: IP Whitelist หรือ Secrets ผิดพลาด" : "การ Validate token ล้มเหลว";
+
         res.status(status).json({
             success: false,
-            message: "การ Validate token ล้มเหลว",
+            message: message,
             error: err.response?.data || err.message,
         });
     }
