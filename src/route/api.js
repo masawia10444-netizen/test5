@@ -6,6 +6,7 @@ const axios = require("axios");
 // const { pool } = require("../db"); 
 
 // ✅ นำเข้า Mongoose Model (User)
+// ต้องแน่ใจว่ามีไฟล์ src/models/userModel.js แล้วนะครับ
 const UserModel = require("../models/userModel"); 
 
 require("dotenv").config();

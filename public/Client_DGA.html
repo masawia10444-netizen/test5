@@ -3,204 +3,224 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DGA Connect Test 0.2</title>
-
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Material+Icons|Material+Icons+Round" rel="stylesheet">
-
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>DGA Integration Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
-        /* Global Styles (Dark Minimal Theme) */
-        body { font-family: 'Prompt', sans-serif; margin: 0; background-color: #1a1a2e; color: #e0e0e0; display: flex; justify-content: center; align-items: flex-start; min-height: 100vh; padding: 40px 20px; box-sizing: border-box; }
-        .container { max-width: 900px; width: 100%; background: #24243e; padding: 30px; border-radius: 12px; box-shadow: 0 8px 16px rgba(0, 0, 0, 0.4); display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
-        h1 { grid-column: 1 / -1; color: #00bcd4; text-align: center; margin-bottom: 40px; font-weight: 700; font-size: 2.2em; }
-        h2 { color: #00bcd4; font-weight: 600; font-size: 1.5em; margin-bottom: 20px; border-bottom: 1px solid rgba(0, 188, 212, 0.3); padding-bottom: 10px; }
-        .card { background-color: #2e2e4f; border-radius: 8px; padding: 25px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); display: flex; flex-direction: column; }
-        .data-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 12px; padding-bottom: 5px; border-bottom: 1px dashed rgba(255, 255, 255, 0.1); }
-        .data-row:last-child { border-bottom: none; }
-        .data-label { font-weight: 500; color: #a0a0a0; flex-shrink: 0; margin-right: 15px; }
-        .data-value { color: #e0e0e0; text-align: right; flex-grow: 1; word-break: break-all; }
-        .button-group { grid-column: 1 / -1; text-align: center; margin-top: 40px; }
-        button { background-color: #00bcd4; color: #fff; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 1.1em; font-weight: 600; transition: background-color 0.3s ease, transform 0.2s ease; }
-        button:hover { background-color: #00a0b2; transform: translateY(-2px); }
-        button:disabled { background-color: #555; cursor: not-allowed; transform: none; }
-        .status-section { grid-column: 1 / -1; margin-top: 30px; }
-        .log-box { background-color: #1a1a2e; padding: 18px; border-radius: 8px; margin-top: 15px; font-family: 'Consolas', 'Monaco', monospace; font-size: 0.85em; max-height: 250px; overflow-y: auto; white-space: pre-wrap; word-wrap: break-word; border: 1px solid rgba(0, 188, 212, 0.2); }
-        .log-box p { margin: 0; padding: 3px 0; color: #b0b0b0; }
-        .log-box p.error { color: #ff6b6b; }
-        .log-box p.success { color: #6bff6b; }
-        .log-box p.info { color: #a0a0a0; }
-        .message { margin-top: 15px; padding: 10px 15px; border-radius: 6px; font-weight: 600; text-align: center; }
-        .message.error { background-color: #4f2e2e; color: #ff6b6b; border: 1px solid #ff6b6b; }
-        .message.success { background-color: #2e4f2e; color: #6bff6b; border: 1px solid #6bff6b; }
-        .message.info { background-color: #2e2e4f; color: #00bcd4; border: 1px solid #00bcd4; }
-        .loading-spinner { border: 4px solid rgba(0, 188, 212, 0.3); width: 24px; height: 24px; border-radius: 50%; border-left-color: #00bcd4; animation: spin 1s ease infinite; display: inline-block; vertical-align: middle; margin-left: 10px; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @media (max-width: 768px) { .container { grid-template-columns: 1fr; gap: 20px; padding: 20px; } h1 { font-size: 1.8em; margin-bottom: 30px; } h2 { font-size: 1.3em; margin-bottom: 15px; } .button-group { margin-top: 30px; } button { font-size: 1em; padding: 10px 20px; } }
+        @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;700&display=swap');
+        body { font-family: 'Sarabun', sans-serif; }
+        .step-card { transition: all 0.3s ease; }
+        .step-card:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>ทดสอบข้อมูลผู้ใช้ DGA Connect</h1>
+<body class="bg-slate-100 min-h-screen py-10 px-4">
 
-        <div class="card">
-            <h2>ข้อมูลส่วนตัว</h2>
-            <div class="data-row"><span class="data-label">รหัสประชาชน:</span><span id="citizenId" class="data-value">-</span></div>
-            <div class="data-row"><span class="data-label">ชื่อ:</span><span id="firstName" class="data-value">-</span></div>
-            <div class="data-row"><span class="data-label">นามสกุล:</span><span id="lastName" class="data-value">-</span></div>
-            <div class="data-row"><span class="data-label">เบอร์มือถือ:</span><span id="mobile" class="data-value">-</span></div>
-            <div class="data-row"><span class="data-label">อีเมล:</span><span id="email" class="data-value">-</span></div>
+    <div class="max-w-5xl mx-auto">
+        <!-- Header -->
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-6 border-l-8 border-blue-600">
+            <h1 class="text-2xl font-bold text-slate-800"><i class="fa-solid fa-shield-halved mr-2"></i>DGA Client Test Panel</h1>
+            <p class="text-slate-500 mt-1">หน้าทดสอบการเชื่อมต่อ API กับ e-Gov (DGA) และระบบสมาชิก MongoDB</p>
         </div>
 
-        <div class="card">
-            <h2>ข้อมูลระบบ</h2>
-            <div class="data-row"><span class="data-label">App ID:</span><span id="appId" class="data-value"></span></div> 
-            <div class="data-row"><span class="data-label">mToken:</span><span id="mToken" class="data-value"></span></div>
-            <div class="data-row"><span class="data-label">Agent ID:</span><span id="agentId" class="data-value">-</span></div>
-            <div class="data-row"><span class="data-label">Consumer Key:</span><span id="consumerKey" class="data-value">-</span></div>
-        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Controls -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Step 1: Validate -->
+                <div class="step-card bg-white rounded-xl shadow p-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 bg-blue-100 text-blue-800 text-xs font-bold px-2 py-1 rounded-bl-lg">STEP 1</div>
+                    <h2 class="text-lg font-bold text-blue-700 mb-4"><i class="fa-solid fa-key mr-2"></i>Authentication (Validate)</h2>
+                    <p class="text-sm text-gray-500 mb-4">ขอ Token จาก DGA เพื่อใช้ยืนยันตัวตนในขั้นตอนถัดไป</p>
+                    
+                    <button onclick="validateToken()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-check-circle"></i> ขอ Token (Validate)
+                    </button>
 
-        <div class="button-group">
-            <button id="refreshDataBtn" onclick="fetchDGAData()">
-                🔄 รีเฟรชข้อมูล <span id="loadingSpinner" class="loading-spinner" style="display: none;"></span>
-            </button>
-        </div>
+                    <div id="token-display" class="mt-3 hidden p-3 bg-green-50 border border-green-200 rounded text-xs text-green-800 font-mono break-all">
+                        <!-- Token will appear here -->
+                    </div>
+                </div>
 
-        <div class="status-section">
-            <div id="statusMessage" class="message info">กรุณากดรีเฟรชเพื่อเริ่ม</div>
-            <h2>Log</h2>
-            <div id="logOutput" class="log-box"></div>
+                <!-- Step 2: Login / Get User Data -->
+                <div class="step-card bg-white rounded-xl shadow p-6 relative overflow-hidden opacity-50 pointer-events-none transition-all" id="step-login">
+                    <div class="absolute top-0 right-0 bg-indigo-100 text-indigo-800 text-xs font-bold px-2 py-1 rounded-bl-lg">STEP 2</div>
+                    <h2 class="text-lg font-bold text-indigo-700 mb-4"><i class="fa-solid fa-user-check mr-2"></i>Login / Get User Data</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">App ID</label>
+                            <input type="text" id="appId" value="7938515d-0bf0-4445-99b3-d941e9c72136" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">mToken (User Token)</label>
+                            <input type="text" id="mToken" placeholder="ใส่ mToken ของผู้ใช้จริง" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        </div>
+                    </div>
+
+                    <button onclick="loginDGA()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-cloud-download-alt"></i> ดึงข้อมูล + บันทึกลง DB
+                    </button>
+                </div>
+
+                <!-- Step 3: Notification -->
+                <div class="step-card bg-white rounded-xl shadow p-6 relative overflow-hidden opacity-50 pointer-events-none transition-all" id="step-noti">
+                    <div class="absolute top-0 right-0 bg-red-100 text-red-800 text-xs font-bold px-2 py-1 rounded-bl-lg">STEP 3</div>
+                    <h2 class="text-lg font-bold text-red-700 mb-4"><i class="fa-solid fa-bell mr-2"></i>Send Notification</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">User ID (จาก Step 2)</label>
+                        <input type="text" id="userId" readonly class="bg-gray-100 shadow appearance-none border rounded w-full py-2 px-3 text-gray-500 leading-tight cursor-not-allowed">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">ข้อความแจ้งเตือน</label>
+                        <textarea id="notiMessage" rows="2" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-red-500">ทดสอบการส่งแจ้งเตือนจากระบบ Node.js</textarea>
+                    </div>
+
+                    <button onclick="sendNoti()" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded transition flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i> ส่งแจ้งเตือน
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Column: Logs -->
+            <div class="bg-slate-900 rounded-xl shadow-lg p-4 text-slate-300 font-mono text-sm flex flex-col h-[600px] overflow-hidden">
+                <div class="flex justify-between items-center border-b border-slate-700 pb-2 mb-2">
+                    <span class="font-bold text-green-400">Server Response Log</span>
+                    <button onclick="document.getElementById('logs').innerHTML=''" class="text-xs text-slate-500 hover:text-white">Clear</button>
+                </div>
+                <div id="logs" class="flex-1 overflow-y-auto space-y-3 pr-2 custom-scrollbar">
+                    <p class="text-slate-600 italic">Waiting for actions...</p>
+                </div>
+            </div>
+
         </div>
     </div>
-    
+
     <script>
-        const logOutput = document.getElementById('logOutput');
-        const statusMessage = document.getElementById('statusMessage');
-        const refreshDataBtn = document.getElementById('refreshDataBtn');
-        const loadingSpinner = document.getElementById('loadingSpinner');
+        // Global Variables
+        let currentToken = '';
+        let currentAgentId = '';
 
-        // ฟังก์ชันจัดการ Log/Status
-        function appendLog(message, type = 'info') {
-            const time = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            const logEntry = document.createElement('p');
-            logEntry.className = type;
-            logEntry.innerHTML = `[${time}] ${message}`;
-            logOutput.prepend(logEntry);
-        }
+        // Helper: Log to UI
+        function log(title, data, isError = false) {
+            const logContainer = document.getElementById('logs');
+            if (logContainer.innerHTML.includes('Waiting for actions...')) logContainer.innerHTML = '';
 
-        function setStatus(message, type = 'info') {
-            statusMessage.textContent = message;
-            statusMessage.className = `message ${type}`;
-        }
-
-        // ✅ ฟังก์ชันดึงค่า App ID / mToken
-        function getDgaParams() {
-            const urlParams = new URLSearchParams(window.location.search);
+            const time = new Date().toLocaleTimeString();
+            const colorClass = isError ? 'text-red-400' : 'text-blue-400';
             
-            // ดึงค่าจาก DOM ก่อน
-            const mockAppId = document.getElementById('appId').textContent;
-            const mockMToken = document.getElementById('mToken').textContent;
-
-            const appId = 
-                (window.czpSdk && window.czpSdk.getAppId?.()) || // 1. จาก SDK
-                urlParams.get('appId') ||                         // 2. จาก URL Params
-                mockAppId;                                        // 3. จาก Mock Value ใน HTML
-
-            const mToken = 
-                (window.czpSdk && window.czpSdk.getToken?.()) ||  // 1. จาก SDK
-                urlParams.get('mToken') ||                        // 2. จาก URL Params
-                mockMToken;                                       // 3. จาก Mock Value ใน HTML
-            
-            return { appId, mToken };
+            const html = `
+                <div class="border-l-2 ${isError ? 'border-red-500' : 'border-blue-500'} pl-3 fade-in">
+                    <div class="flex justify-between text-xs text-slate-500">
+                        <span>${time}</span>
+                        <span class="${colorClass} font-bold">${title}</span>
+                    </div>
+                    <pre class="mt-1 text-xs text-slate-300">${typeof data === 'object' ? JSON.stringify(data, null, 2) : data}</pre>
+                </div>
+            `;
+            logContainer.insertAdjacentHTML('afterbegin', html);
         }
 
-        async function fetchDGAData() {
-            loadingSpinner.style.display = 'inline-block';
-            refreshDataBtn.disabled = true;
-            setStatus('กำลังโหลดข้อมูล...', 'info');
-            logOutput.innerHTML = ''; // Clear log
-            appendLog('เริ่มการเรียกข้อมูล DGA...', 'info');
-
+        // Step 1: Validate
+        async function validateToken() {
             try {
-                const { appId, mToken } = getDgaParams();
-                
-                // 🛑 ตรวจสอบค่าจริง (แทนที่การใช้ Mock)
-                if (!appId || !mToken) {
-                     throw new Error("❌ ขาด App ID หรือ mToken: ต้องได้รับจาก URL หรือ DGA SDK เท่านั้น");
-                }
-                
-                // Update UI (แสดงค่าที่ได้มา)
-                document.getElementById('mToken').textContent = mToken || '-';
-                document.getElementById('appId').textContent = appId || '-';
-                
-                // 1. ✅ Validate เพื่อขอ Token (API: /test5/api/validate)
-                appendLog('กำลังเรียก Backend API: /test5/api/validate...', 'info');
-                // แก้ไข: ไม่ต้องส่ง params ไปเพราะ Secrets อยู่ใน Backend แล้ว
-                const validateRes = await axios.get("/test5/api/validate"); 
-                
-                const token = validateRes.data.token;
-                
-                // ดึง Agent ID และ Consumer Key จาก Response ของ /validate
-                document.getElementById('agentId').textContent = validateRes.data.agentId || '-';
-                document.getElementById('consumerKey').textContent = validateRes.data.consumerKey || '-';
+                log('REQ', 'Fetching /test5/api/validate...');
+                const res = await fetch('/test5/api/validate');
+                const data = await res.json();
 
-                appendLog(`✅ ได้ Access Token: ${token.substring(0, 10)}...`, 'success');
+                if (data.success) {
+                    currentToken = data.token;
+                    currentAgentId = data.agentId;
+                    
+                    // UI Update
+                    document.getElementById('token-display').innerHTML = `<i class="fa-solid fa-key"></i> <b>Token:</b> ${currentToken.substring(0, 20)}...`;
+                    document.getElementById('token-display').classList.remove('hidden');
+                    
+                    // Unlock Step 2
+                    const step2 = document.getElementById('step-login');
+                    step2.classList.remove('opacity-50', 'pointer-events-none');
+                    step2.classList.add('ring-2', 'ring-indigo-200');
 
-                // 2. ✅ Login, ดึงข้อมูลผู้ใช้, และบันทึก/อัปเดต (API: /test5/api/login)
-                appendLog('กำลังเรียก Backend API: /test5/api/login...', 'info');
-                
-                // ส่ง appId, mToken, และ token ไปพร้อมกันใน body (ตาม API.js Logic)
-                const loginBody = { 
-                    appId: appId,
-                    mToken: mToken,
-                    token: token 
-                };
-
-                const loginRes = await axios.post("/test5/api/login", loginBody); 
-                
-                const userData = loginRes.data.user;
-                appendLog('✅ ดึงข้อมูลผู้ใช้สำเร็จและบันทึกใน MongoDB', 'success');
-
-                // 3. ✅ แสดงผลข้อมูลผู้ใช้
-                document.getElementById('citizenId').textContent = userData.citizenId || '-';
-                document.getElementById('firstName').textContent = userData.firstName || '-';
-                document.getElementById('lastName').textContent = userData.lastName || '-';
-                document.getElementById('mobile').textContent = userData.mobile || '-'; 
-                document.getElementById('email').textContent = userData.email || '-'; 
-
-                setStatus('✔️ โหลดข้อมูลสำเร็จแล้ว', 'success');
-
-            } catch (error) {
-                console.error("Error fetching DGA data:", error);
-                let errorMessage = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
-                
-                if (error.response) {
-                    // แสดง Error Code และ Message จาก Backend (เช่น 403 Forbidden)
-                    errorMessage = `${error.response.status} - ${error.response.data.message || error.response.statusText}`;
-                    appendLog(`API Error: ${errorMessage}`, 'error');
-                } else if (error.request) {
-                    errorMessage = `Network/Connection Error: ไม่มีการตอบสนองจากเซิร์ฟเวอร์`;
-                    appendLog('Network Error: ไม่มีการตอบสนองจากเซิร์ฟเวอร์', 'error');
+                    log('RES (Success)', data);
                 } else {
-                    errorMessage = `General Error: ${error.message}`;
-                    appendLog(`❌ ${errorMessage}`, 'error');
+                    log('RES (Error)', data, true);
                 }
-                setStatus(`❌ ${errorMessage}`, 'error');
-            } finally {
-                loadingSpinner.style.display = 'none';
-                refreshDataBtn.disabled = false;
+            } catch (err) {
+                log('ERROR', err.message, true);
             }
         }
 
-        // รันอัตโนมัติเมื่อโหลดหน้า (ถ้าต้องการ)
-        window.addEventListener('load', fetchDGAData); 
+        // Step 2: Login
+        async function loginDGA() {
+            const appId = document.getElementById('appId').value;
+            const mToken = document.getElementById('mToken').value;
 
-        // Global Error Handler สำหรับ Frontend JS
-        window.onerror = function(message, source, lineno, colno, error) {
-            appendLog(`Browser JS Error: ${message} at ${source}:${lineno}`, 'error');
-            return false;
-        };
+            if (!mToken) {
+                alert('กรุณากรอก mToken (จำลอง)');
+                return;
+            }
+
+            try {
+                log('REQ', `Posting /test5/api/login with mToken: ${mToken}...`);
+                const res = await fetch('/test5/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ appId, mToken, token: currentToken })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    log('RES (Success)', data);
+                    
+                    // Auto fill User ID for next step
+                    if (data.user && data.user.userId) {
+                        document.getElementById('userId').value = data.user.userId;
+                        
+                        // Unlock Step 3
+                        const step3 = document.getElementById('step-noti');
+                        step3.classList.remove('opacity-50', 'pointer-events-none');
+                        step3.classList.add('ring-2', 'ring-red-200');
+                    }
+                } else {
+                    log('RES (Error)', data, true);
+                }
+            } catch (err) {
+                log('ERROR', err.message, true);
+            }
+        }
+
+        // Step 3: Notification
+        async function sendNoti() {
+            const appId = document.getElementById('appId').value;
+            const userId = document.getElementById('userId').value;
+            const message = document.getElementById('notiMessage').value;
+
+            try {
+                log('REQ', `Sending Notification to ${userId}...`);
+                const res = await fetch('/test5/api/notification', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        appId, 
+                        userId, 
+                        token: currentToken, 
+                        message 
+                    })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    log('RES (Success)', data);
+                } else {
+                    log('RES (Error)', data, true);
+                }
+            } catch (err) {
+                log('ERROR', err.message, true);
+            }
+        }
     </script>
 </body>
 </html>
