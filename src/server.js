@@ -1,46 +1,41 @@
 const express = require("express");
 const path = require("path");
-
-// ✅ นำเข้า Express Router สำหรับ API
 const apiRoutes = require("./route/api"); 
-
-// ✅ นำเข้าฟังก์ชันเชื่อมต่อฐานข้อมูล MongoDB
 const { initDB } = require("./utils/db"); 
-
-// ✅ นำเข้าและตั้งค่า dotenv เพื่อโหลดตัวแปรจากไฟล์ .env
 require("dotenv").config();
 
 const app = express();
-// ดึงค่า PORT จาก .env หรือใช้ค่า default 1040
 const PORT = process.env.PORT || 1040;
 
-// Middleware สำหรับการจัดการ JSON request body (ใช้ใน /login และ /notification)
+// Middleware สำหรับอ่าน JSON body
 app.use(express.json());
 
-// --- การกำหนด Routes ---
-
-// 1. ✅ Static Files (สำหรับ CSS, JS, Fonts, Images)
-// Express จะมองหาไฟล์ใน /public/ เมื่อ Path เริ่มต้นด้วย /test5
+// --- 1. Static Files (Frontend) ---
+// ให้ Express เข้าถึงไฟล์ในโฟลเดอร์ public ได้ ผ่าน path /test5
 app.use("/test5", express.static(path.join(__dirname, "../public"))); 
 
-// 2. ✅ Redirect Root: / ไปที่ /test5
+// --- 2. Routes ---
+// Redirect root (/) ไปที่ /test5
 app.get("/", (req, res) => {
     res.redirect("/test5");
 });
 
-// 3. ✅ Frontend Main Page: /test5
-// เสิร์ฟ Client_DGA.html โดยใช้ path.resolve เพื่อแก้ปัญหา ENOENT
+// หน้าเว็บหลัก (Client_DGA.html)
 app.get("/test5", (req, res) => {
+    // ใช้ path.resolve เพื่อความแม่นยำในการหาไฟล์
     res.sendFile(path.resolve(__dirname, '..', 'public', 'Client_DGA.html')); 
 });
 
-// 4. ✅ API Routes
-// Endpoint ต้องเป็น /test5/api เพื่อรับ Request ที่มาจาก NPM และ Frontend
+// API Routes (เชื่อมกับไฟล์ api.js ที่เราเพิ่งแก้ไป)
 app.use("/test5/api", apiRoutes);
 
-// 5. ✅ Start server และเริ่มต้นฐานข้อมูล
+// --- 3. Start Server ---
 app.listen(PORT, async () => {
-    // เรียกใช้ initDB เพื่อเชื่อมต่อฐานข้อมูล MongoDB Atlas
-    await initDB(); 
-    console.log(`🚀 Server running at http://localhost:${PORT}/test5`);
+    try {
+        // เริ่มต้นเชื่อมต่อ Database
+        await initDB(); 
+        console.log(`🚀 Server running at http://localhost:${PORT}/test5`);
+    } catch (err) {
+        console.error("❌ Failed to start server:", err);
+    }
 });
